@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GOMU CRACKERS - Billing System{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #FFD700;
+            --secondary-color: #1a1a1a;
+            --light-color: #FFF8F3;
+            --dark-color: #1a1a1a;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--secondary-color), #2a2a2a);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            padding: 10px 0;
+        }
+        
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: 700;
+            color: white !important;
+            text-decoration: none;
+        }
+        
+        .logo-container {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border: 2px solid var(--primary-color);
+            flex-shrink: 0;
+            overflow: hidden;
+            background: white;
+        }
+        
+        .logo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        
+        .brand-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .brand-text .main-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            line-height: 1;
+        }
+        
+        .brand-text .sub-title {
+            font-size: 0.75rem;
+            color: #999;
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+        
+        .sidebar {
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            min-height: 100vh;
+        }
+        
+        .sidebar .nav-link {
+            color: #333;
+            border-left: 4px solid transparent;
+            padding: 12px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover {
+            background-color: var(--light-color);
+            border-left-color: var(--primary-color);
+            color: var(--secondary-color);
+        }
+        
+        .sidebar .nav-link.active {
+            background-color: var(--light-color);
+            border-left-color: var(--primary-color);
+            color: var(--secondary-color);
+            font-weight: 600;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.12);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: var(--secondary-color);
+            font-weight: 600;
+        }
+        
+        .btn-primary:hover {
+            background-color: #FFC300;
+            border-color: #FFC300;
+            color: var(--secondary-color);
+        }
+        
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #333;
+            border-color: #333;
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: var(--light-color);
+        }
+        
+        .badge-success {
+            background-color: #28a745;
+        }
+        
+        .badge-danger {
+            background-color: #dc3545;
+        }
+        
+        .badge-warning {
+            background-color: #ffc107;
+            color: #000;
+        }
+        
+        .page-title {
+            color: var(--secondary-color);
+            font-weight: 700;
+            margin-bottom: 30px;
+            font-size: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-card .stat-label {
+            color: #666;
+            margin-top: 10px;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(255, 215, 0, 0.25);
+        }
+        
+        .alert {
+            border: none;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+        
+        .alert-success {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        
+        .alert-danger {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        
+        .alert-warning {
+            border-left-color: #ffc107;
+            background-color: #fff3cd;
+        }
+        
+        .alert-info {
+            border-left-color: #17a2b8;
+            background-color: #d1ecf1;
+        }
+        
+        .footer {
+            background: var(--secondary-color);
+            color: var(--primary-color);
+            padding: 20px;
+            text-align: center;
+            margin-top: 40px;
+            font-weight: 600;
+        }
+        
+        .section-title {
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin: 20px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+        
+        .low-stock {
+            color: #dc3545;
+            font-weight: 600;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <div class="logo-container">
+                    <img src="https://i.ibb.co/TMwkDcp6/gomu1.jpg" alt="GOMU CRACKERS Logo" class="logo-img">
+                </div>
+                <div class="brand-text">
+                    <span class="main-title">GOMU CRACKERS</span>
+                    <span class="sub-title">Light up your memories!</span>
+                </div>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> {% if user.is_authenticated %}{{ user.username }}{% else %}Guest{% endif %}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="/admin/">Admin Panel</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/admin/logout/">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 sidebar">
+                <div class="d-flex flex-column">
+                    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    
+                    <hr class="my-2">
+                    
+                    <div class="fw-bold text-muted px-3 mt-2 mb-2">Masters</div>
+                    <a href="{% url 'product_list' %}" class="nav-link {% if 'product' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="bi bi-box"></i> Products
+                    </a>
+                    <a href="{% url 'customer_list' %}" class="nav-link {% if 'customer' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="bi bi-people"></i> Customers
+                    </a>
+                    <a href="{% url 'stock_list' %}" class="nav-link {% if 'stock' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="bi bi-graph-up"></i> Stock
+                    </a>
+                    
+                    <hr class="my-2">
+                    
+                    <div class="fw-bold text-muted px-3 mt-2 mb-2">Transactions</div>
+                    <a href="{% url 'bill_list' %}" class="nav-link {% if 'bill' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="bi bi-file-earmark-text"></i> Bills
+                    </a>
+                    <a href="{% url 'bill_create' %}" class="nav-link">
+                        <i class="bi bi-plus-circle"></i> New Bill
+                    </a>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-10 main-content">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p><i class="bi bi-star-fill"></i> GOMU CRACKERS - Light up your memories! <i class="bi bi-star-fill"></i></p>
+        <p style="font-size: 0.9rem; color: #999; margin-top: 10px;">&copy; 2026 GOMU CRACKERS Billing System. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

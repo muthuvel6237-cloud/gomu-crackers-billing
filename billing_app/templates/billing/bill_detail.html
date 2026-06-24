@@ -1,0 +1,170 @@
+{% extends 'billing/index.html' %}
+
+{% block title %}Bill Details - Crackers Billing{% endblock %}
+
+{% block content %}
+<div class="page-title">
+    <i class="bi bi-file-earmark-text"></i> Bill #{{ bill.bill_number }}
+</div>
+
+<div class="row">
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Bill Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6>Shop Details</h6>
+                        <p>
+                            <strong>Crackers Shop</strong><br>
+                            Professional Billing System<br>
+                            <i class="bi bi-envelope"></i> billing@crackersshop.com
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Bill Details</h6>
+                        <p>
+                            <strong>Bill Number:</strong> {{ bill.bill_number }}<br>
+                            <strong>Date:</strong> {{ bill.bill_date|date:"d-m-Y H:i:s" }}<br>
+                            <strong>Status:</strong> 
+                            {% if bill.is_completed %}
+                                <span class="badge bg-success">Completed</span>
+                            {% else %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6>Customer Information</h6>
+                        {% if bill.customer %}
+                            <p>
+                                <strong>{{ bill.customer.name }}</strong><br>
+                                <i class="bi bi-telephone"></i> {{ bill.customer.phone }}<br>
+                                {% if bill.customer.email %}
+                                    <i class="bi bi-envelope"></i> {{ bill.customer.email }}<br>
+                                {% endif %}
+                                {% if bill.customer.address %}
+                                    <i class="bi bi-geo-alt"></i> {{ bill.customer.address }}<br>
+                                {% endif %}
+                              </p>
+                        {% else %}
+                            <p class="text-muted">Walk-in Customer</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Payment Information</h6>
+                        <p>
+                            <strong>Payment Method:</strong> {{ bill.get_payment_method_display }}<br>
+                            <strong>Amount Received:</strong> ₹{{ bill.payment_received|floatformat:2 }}<br>
+                            {% if bill.change_amount > 0 %}
+                                <strong class="text-success">Change:</strong> ₹{{ bill.change_amount|floatformat:2 }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <hr>
+
+                <h6>Items</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th class="text-center">Qty</th>
+                                <th class="text-end">Unit Price</th>
+                                <th class="text-end">Item Discount</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in bill.bill_items_set.all %}
+                            <tr>
+                                <td>{{ item.product.name }}</td>
+                                <td class="text-center">{{ item.quantity }}</td>
+                                <td class="text-end">₹{{ item.unit_price|floatformat:2 }}</td>
+                                <td class="text-end">{{ item.item_discount }}%</td>
+                                <td class="text-end"><strong>₹{{ item.item_total|floatformat:2 }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <hr>
+
+                <div class="row">
+                    <div class="col-md-6"></div>
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Subtotal:</strong></td>
+                                <td class="text-end">₹{{ bill.subtotal|floatformat:2 }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Discount ({{ bill.discount_percent }}%):</strong></td>
+                                <td class="text-end">-₹{{ bill.discount_amount|floatformat:2 }}</td>
+                            </tr>
+                            <tr style="border-top: 2px solid #000;">
+                                <td><h6 class="mb-0"><strong>Total Amount:</strong></h6></td>
+                                <td class="text-end"><h6 class="mb-0"><strong>₹{{ bill.total_amount|floatformat:2 }}</strong></h6></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card mb-3">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Actions</h5>
+            </div>
+            <div class="card-body d-flex flex-column gap-2">
+                <a href="{% url 'bill_pdf' bill.id %}" class="btn btn-danger" target="_blank">
+                    <i class="bi bi-file-pdf"></i> Download PDF
+                </a>
+                <a href="{% url 'bill_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Bills
+                </a>
+                {% if not bill.is_completed %}
+                    <a href="{% url 'bill_items' bill.id %}" class="btn btn-warning">
+                        <i class="bi bi-pencil"></i> Edit Bill
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Bill Status</h5>
+            </div>
+            <div class="card-body">
+                {% if bill.is_completed %}
+                    <div class="alert alert-success mb-0">
+                        <i class="bi bi-check-circle"></i> This bill is completed and finalized.
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning mb-0">
+                        <i class="bi bi-exclamation-circle"></i> This bill is pending completion.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table {
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends 'billing/index.html' %}
+
+{% block title %}{% if title %}{{ title }}{% else %}Stock Form{% endif %} - GOMU CRACKERS{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="page-title">
+            <i class="bi bi-plus-circle"></i> {{ title|default:"Manage Stock" }}
+        </h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'stock_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Stock List
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header" style="background: linear-gradient(135deg, #1a1a1a, #2a2a2a); color: #FFD700;">
+                <h5 class="mb-0">
+                    <i class="bi bi-pencil-square"></i> 
+                    {% if form.instance.id %}Edit Stock{% else %}Add New Stock{% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" class="needs-validation">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.product.id_for_label }}" class="form-label">
+                            <i class="bi bi-box"></i> Product *
+                        </label>
+                        {{ form.product }}
+                        {% if form.product.errors %}
+                            <div class="text-danger mt-2">
+                                {{ form.product.errors }}
+                            </div>
+                        {% endif %}
+                        <small class="text-muted d-block mt-1">Select the product to manage stock for</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.movement_type.id_for_label }}" class="form-label">
+                            <i class="bi bi-arrow-left-right"></i> Movement Type *
+                        </label>
+                        {{ form.movement_type }}
+                        {% if form.movement_type.errors %}
+                            <div class="text-danger mt-2">
+                                {{ form.movement_type.errors }}
+                            </div>
+                        {% endif %}
+                        <small class="text-muted d-block mt-1">
+                            <strong>IN:</strong> Add stock | 
+                            <strong>OUT:</strong> Remove from sale | 
+                            <strong>ADJ:</strong> Correct count
+                        </small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.quantity.id_for_label }}" class="form-label">
+                                <i class="bi bi-123"></i> Quantity *
+                            </label>
+                            {{ form.quantity }}
+                            {% if form.quantity.errors %}
+                                <div class="text-danger mt-2">
+                                    {{ form.quantity.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.unit.id_for_label }}" class="form-label">
+                                <i class="bi bi-rulers"></i> Unit *
+                            </label>
+                            {{ form.unit }}
+                            {% if form.unit.errors %}
+                                <div class="text-danger mt-2">
+                                    {{ form.unit.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.reason.id_for_label }}" class="form-label">
+                            <i class="bi bi-chat-dots"></i> Reason
+                        </label>
+                        {{ form.reason }}
+                        {% if form.reason.errors %}
+                            <div class="text-danger mt-2">
+                                {{ form.reason.errors }}
+                            </div>
+                        {% endif %}
+                        <small class="text-muted d-block mt-1">
+                            Examples: "Received from supplier", "Sold to customer", "Damaged items"
+                        </small>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Stock Validation:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>For <strong>Stock Out</strong>, available quantity must be sufficient</li>
+                            <li>Quantity must match the product unit</li>
+                            <li>Always add a reason for tracking</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'stock_list' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-circle"></i> 
+                            {% if form.instance.id %}Update Stock{% else %}Add Stock{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Tips</h5>
+            </div>
+            <div class="card-body">
+                <h6><i class="bi bi-arrow-up text-success"></i> Stock In</h6>
+                <p class="small">Use when receiving stock from suppliers or manufacturers.</p>
+
+                <h6><i class="bi bi-arrow-down text-danger"></i> Stock Out</h6>
+                <p class="small">Use when items are sold or removed from inventory.</p>
+
+                <h6><i class="bi bi-arrow-left-right text-warning"></i> Adjustment</h6>
+                <p class="small">Use to correct stock counts during inventory checks.</p>
+
+                <div class="alert alert-warning mt-3">
+                    <small>
+                        <strong>Note:</strong> Match the unit to your product's unit of measurement.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
