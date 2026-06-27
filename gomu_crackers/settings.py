@@ -18,13 +18,14 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-local-dev-key-change-
 
 DEBUG = os.environ.get('DJANGO_DEBUG', '0' if is_frozen() else '1').lower() in {'1', 'true', 'yes', 'on'}
 
-# Allow Railway-injected host + localhost
-_allowed = os.environ.get('ALLOWED_HOSTS', '')
-ALLOWED_HOSTS = [h.strip() for h in _allowed.split(',') if h.strip()] or ['127.0.0.1', 'localhost']
+# Allow all hosts so Railway's internal healthchecks pass
+ALLOWED_HOSTS = ['*']
 
-# Trust Railway's reverse proxy headers
+# Trust Railway domains for CSRF (explicitly required for Django 4.0+ over proxies)
 CSRF_TRUSTED_ORIGINS = [
-    f'https://{h}' for h in ALLOWED_HOSTS if not h.startswith('127') and h != 'localhost'
+    'https://web-production-2d1ea.up.railway.app',
+    'https://*.up.railway.app',
+    'https://*.railway.app'
 ]
 
 # Ensure Django knows it's behind a secure proxy (Railway)
