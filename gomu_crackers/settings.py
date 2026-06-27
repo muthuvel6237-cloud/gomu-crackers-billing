@@ -27,6 +27,9 @@ CSRF_TRUSTED_ORIGINS = [
     f'https://{h}' for h in ALLOWED_HOSTS if not h.startswith('127') and h != 'localhost'
 ]
 
+# Ensure Django knows it's behind a secure proxy (Railway)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 # Application definition
 
