@@ -1,0 +1,91 @@
+{% extends 'billing/base.html' %}
+
+{% block title %}Bills - Crackers Billing{% endblock %}
+
+{% block content %}
+<div class="page-title">
+    <i class="bi bi-file-earmark-text"></i> Bills Management
+</div>
+
+<div class="mb-4">
+    <a href="{% url 'bill_create' %}" class="btn btn-primary btn-lg">
+        <i class="bi bi-plus-circle"></i> Create New Bill
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Bills History</h5>
+    </div>
+    <div class="card-body">
+        {% if bills %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Bill #</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Subtotal</th>
+                            <th>Discount</th>
+                            <th>Total</th>
+                            <th>Payment Method</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bill in bills %}
+                        <tr>
+                            <td><strong>{{ bill.bill_number }}</strong></td>
+                            <td>{{ bill.customer.name|default:"Walk-in" }}</td>
+                            <td>{{ bill.bill_date|date:"d-m-Y H:i" }}</td>
+                            <td>₹{{ bill.subtotal|floatformat:2 }}</td>
+                            <td>₹{{ bill.discount_amount|floatformat:2 }}</td>
+                            <td><strong>₹{{ bill.total_amount|floatformat:2 }}</strong></td>
+                            <td>{{ bill.get_payment_method_display }}</td>
+                            <td>
+                                {% if bill.is_completed %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'bill_detail' bill.id %}" class="btn btn-sm btn-info" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'bill_pdf' bill.id %}" class="btn btn-sm btn-danger" title="Download PDF">
+                                    <i class="bi bi-file-pdf"></i>
+                                </a>
+                                <a href="{% url 'delete_bill' bill.id %}"
+       class="btn btn-dark btn-sm"
+       onclick="return confirm('Are you sure you want to delete this bill?');">
+        Delete
+    </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No bills created yet. 
+                <a href="{% url 'bill_create' %}" class="alert-link">Create your first bill</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+<script>
+function clearBillForm() {
+    if (confirm("Delete / clear this bill form?")) {
+        document.querySelector("form").reset();
+
+        if ($('#customer_select').length) {
+            $('#customer_select').val(null).trigger('change');
+        }
+    }
+}
+</script>
+{% endblock %}
