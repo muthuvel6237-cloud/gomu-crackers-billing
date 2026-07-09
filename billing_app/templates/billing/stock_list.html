@@ -1,139 +1,231 @@
 {% extends 'billing/base.html' %}
 
-{% block title %}Stock Management - GOMU CRACKERS{% endblock %}
+{% block title %}Stock - GOMU CRACKERS{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <h1 class="page-title">
-            <i class="bi bi-graph-up"></i> Stock Management
-        </h1>
+<div class="stock-page">
+    <div class="d-flex justify-content-between align-items-center gap-3 mb-4 flex-wrap">
+        <div>
+            <h1 class="page-title mb-1">
+                <i class="bi bi-boxes"></i> Stock
+            </h1>
+            <div class="text-muted">Current stock updates directly from Products</div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'stock_create' %}?type=in" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Stock In
+            </a>
+            <a href="{% url 'stock_create' %}?type=out" class="btn btn-outline-danger">
+                <i class="bi bi-dash-circle"></i> Stock Out
+            </a>
+            <a href="{% url 'stock_create' %}?type=adjustment" class="btn btn-outline-secondary">
+                <i class="bi bi-sliders"></i> Adjust
+            </a>
+        </div>
     </div>
-    <div class="col-md-4 text-end">
-        <a href="{% url 'stock_create' %}" class="btn btn-primary btn-lg">
-            <i class="bi bi-plus-circle"></i> Add Stock In
-        </a>
-    </div>
-</div>
 
-<!-- Low Stock Alert -->
-{% if low_stock_count > 0 %}
-<div class="alert alert-warning alert-dismissible fade show" role="alert">
-    <i class="bi bi-exclamation-triangle"></i>
-    <strong>⚠️ Low Stock Alert!</strong> {{ low_stock_count }} product(s) have low stock levels (Below 10 units).
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-{% else %}
-<div class="alert alert-success alert-dismissible fade show" role="alert">
-    <i class="bi bi-check-circle"></i>
-    <strong>✓ All Stock Levels Good!</strong> All products have sufficient stock.
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-{% endif %}
-
-<!-- Stock Movements Table -->
-<div class="card">
-    <div class="card-header" style="background: linear-gradient(135deg, #1a1a1a, #2a2a2a); color: #FFD700;">
-        <h5 class="mb-0">
-            <i class="bi bi-list-ul"></i> All Stock Movements
-        </h5>
+    {% if low_stock_count > 0 or out_of_stock_count > 0 %}
+    <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle"></i>
+        <strong>Attention needed:</strong>
+        {{ low_stock_count }} low-stock and {{ out_of_stock_count }} out-of-stock product(s).
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
-    <div class="card-body p-0">
+    {% else %}
+    <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+        <i class="bi bi-check-circle"></i>
+        <strong>Stock looks good:</strong> no low-stock or out-of-stock products.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stock-metric">
+                <div class="metric-icon text-primary"><i class="bi bi-box"></i></div>
+                <div>
+                    <div class="metric-value">{{ product_count }}</div>
+                    <div class="metric-label">Products</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stock-metric">
+                <div class="metric-icon text-success"><i class="bi bi-stack"></i></div>
+                <div>
+                    <div class="metric-value">{{ total_quantity }}</div>
+                    <div class="metric-label">Total Quantity</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stock-metric">
+                <div class="metric-icon text-warning"><i class="bi bi-cash-stack"></i></div>
+                <div>
+                    <div class="metric-value">Rs. {{ stock_value|floatformat:0 }}</div>
+                    <div class="metric-label">Stock Value</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stock-metric">
+                <div class="metric-icon text-danger"><i class="bi bi-exclamation-circle"></i></div>
+                <div>
+                    <div class="metric-value">{{ low_stock_count }} / {{ out_of_stock_count }}</div>
+                    <div class="metric-label">Low / Out</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="inventory-card">
+                <div class="inventory-card-header">
+                    <div>
+                        <h5 class="mb-0">Current Product Stock</h5>
+                        <small class="text-muted">Add, edit, or import products to update these quantities</small>
+                    </div>
+                    <a href="{% url 'product_list' %}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-box"></i> Products
+                    </a>
+                </div>
+
+                {% if products %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Unit</th>
+                                <th class="text-end">Stock</th>
+                                <th class="text-end">Value</th>
+                                <th>Status</th>
+                                <th class="text-end">Update</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in products %}
+                            <tr>
+                                <td>
+                                    <strong>{{ product.name }}</strong>
+                                    <div class="small text-muted">{{ product.description|default:"No description"|truncatewords:6 }}</div>
+                                </td>
+                                <td>{{ product.get_category_display }}</td>
+                                <td>{{ product.get_unit_display }}</td>
+                                <td class="text-end fw-bold">{{ product.quantity }}</td>
+                                <td class="text-end">Rs. {{ product.stock_total|floatformat:2 }}</td>
+                                <td>
+                                    {% if product.quantity > 10 %}
+                                        <span class="badge bg-success">In Stock</span>
+                                    {% elif product.quantity > 0 %}
+                                        <span class="badge bg-warning text-dark">Low</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Out</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'product_update' product.id %}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-box"></i>
+                    <h5>No products yet</h5>
+                    <p class="text-muted">Add or import products to start tracking stock automatically.</p>
+                    <a href="{% url 'product_create' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Add Product
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="inventory-card">
+                <div class="inventory-card-header">
+                    <div>
+                        <h5 class="mb-0">Low Stock Watch</h5>
+                        <small class="text-muted">Products below 10 units</small>
+                    </div>
+                </div>
+
+                {% if low_stock_products %}
+                    <div class="watch-list">
+                        {% for product in low_stock_products %}
+                        <div class="watch-item">
+                            <div>
+                                <strong>{{ product.name }}</strong>
+                                <div class="small text-muted">{{ product.get_category_display }}</div>
+                            </div>
+                            <span class="badge bg-warning text-dark">{{ product.quantity }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state compact">
+                        <i class="bi bi-check-circle"></i>
+                        <h5>No low stock items</h5>
+                        <p class="text-muted mb-0">Everything is above the warning level.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="inventory-card mt-4">
+        <div class="inventory-card-header">
+            <div>
+                <h5 class="mb-0">Manual Stock Entry History</h5>
+                <small class="text-muted">Optional records for stock in, stock out, and adjustments</small>
+            </div>
+            <a href="{% url 'stock_create' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-plus-circle"></i> Manual Entry
+            </a>
+        </div>
+
         {% if stocks %}
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
                     <tr>
-                        <th style="color: #1a1a1a; font-weight: 700;">
-                            <i class="bi bi-box"></i> Product
-                        </th>
-                        <th style="color: #1a1a1a; font-weight: 700;">
-                            <i class="bi bi-tag"></i> Category
-                        </th>
-                        <th style="color: #1a1a1a; font-weight: 700;">
-                            <i class="bi bi-boxes"></i> Current Stock
-                        </th>
-                        <th style="color: #1a1a1a; font-weight: 700;">
-                            <i class="bi bi-arrow-left-right"></i> Movement Type
-                        </th>
-                        <th style="color: #1a1a1a; font-weight: 700;">
-                            <i class="bi bi-123"></i> Quantity Changed
-                        </th>
-                        <th style="color: #1a1a1a; font-weight: 700;">
-                            <i class="bi bi-calendar-event"></i> Date
-                        </th>
-                        <th style="color: #1a1a1a; font-weight: 700;">
-                            <i class="bi bi-chat-dots"></i> Reason
-                        </th>
-                        <th class="text-center" style="color: #1a1a1a; font-weight: 700;">
-                            <i class="bi bi-tools"></i> Actions
-                        </th>
+                        <th>Product</th>
+                        <th>Type</th>
+                        <th class="text-end">Qty</th>
+                        <th>Date</th>
+                        <th>Reason</th>
+                        <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for stock in stocks %}
                     <tr>
+                        <td><strong>{{ stock.product.name }}</strong></td>
                         <td>
-                            <strong>{{ stock.product.name }}</strong>
-                            {% if stock.product.quantity < 10 %}
-                            <span class="badge bg-danger ms-2">
-                                <i class="bi bi-exclamation-circle"></i> Low Stock
-                            </span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if stock.product.category %}
-                                <span class="badge bg-secondary">{{ stock.product.category }}</span>
+                            {% if stock.movement_type == 'in' %}
+                                <span class="badge bg-success">Stock In</span>
+                            {% elif stock.movement_type == 'out' %}
+                                <span class="badge bg-danger">Stock Out</span>
                             {% else %}
-                                <span class="text-muted">-</span>
+                                <span class="badge bg-secondary">Adjustment</span>
                             {% endif %}
                         </td>
-                        <td>
-                            <span class="badge bg-info" style="font-size: 0.9rem;">
-                                <i class="bi bi-box2"></i> {{ stock.product.quantity }} units
-                            </span>
-                        </td>
-                        <td>
-                            {% if stock.movement_type == 'IN' %}
-                                <span class="badge bg-success" style="font-size: 0.9rem;">
-                                    <i class="bi bi-arrow-up-circle"></i> Stock In
-                                </span>
-                            {% elif stock.movement_type == 'OUT' %}
-                                <span class="badge bg-danger" style="font-size: 0.9rem;">
-                                    <i class="bi bi-arrow-down-circle"></i> Stock Out
-                                </span>
-                            {% elif stock.movement_type == 'ADJ' %}
-                                <span class="badge bg-warning text-dark" style="font-size: 0.9rem;">
-                                    <i class="bi bi-arrow-left-right"></i> Adjustment
-                                </span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <strong style="color: #FFD700; font-size: 1.1rem;">
-                                {{ stock.quantity }}
-                            </strong>
-                        </td>
-                        <td>
-                            <small class="text-muted">
-                                <i class="bi bi-calendar-event"></i>
-                                {{ stock.created_at|date:"d-m-Y H:i" }}
-                            </small>
-                        </td>
-                        <td>
-                            <small>
-                                {% if stock.reason %}
-                                    {{ stock.reason }}
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </small>
-                        </td>
-                        <td class="text-center">
-                            <a href="{% url 'stock_update' stock.id %}" class="btn btn-sm btn-warning" title="Edit Stock">
-                                <i class="bi bi-pencil-square"></i> Edit
+                        <td class="text-end fw-bold">{{ stock.quantity }}</td>
+                        <td><span class="text-muted">{{ stock.created_at|date:"d-m-Y H:i" }}</span></td>
+                        <td>{{ stock.reason|default:"-" }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'stock_update' stock.id %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i>
                             </a>
-                            <a href="{% url 'stock_delete' stock.id %}" class="btn btn-sm btn-danger" title="Delete Stock">
-                                <i class="bi bi-trash"></i> Delete
+                            <a href="{% url 'stock_delete' stock.id %}" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
                             </a>
                         </td>
                     </tr>
@@ -142,87 +234,110 @@
             </table>
         </div>
         {% else %}
-        <div class="alert alert-info m-3" style="margin: 20px;">
-            <i class="bi bi-info-circle"></i> 
-            <strong>No Stock Movements Yet!</strong>
-            <a href="{% url 'stock_create' %}" class="btn btn-sm btn-primary ms-2">
-                <i class="bi bi-plus-circle"></i> Create First Entry
-            </a>
+        <div class="empty-state compact">
+            <i class="bi bi-journal-text"></i>
+            <h5>No manual entries</h5>
+            <p class="text-muted mb-0">This is optional. Product quantities still update stock automatically.</p>
         </div>
         {% endif %}
     </div>
 </div>
 
-<!-- Stock Summary Statistics -->
-<div class="row mt-5">
-    <div class="col-md-3 mb-4">
-        <div class="stat-card">
-            <div class="stat-value" style="color: #FFD700;">
-                <i class="bi bi-list"></i> {{ stocks|length }}
-            </div>
-            <div class="stat-label">
-                <strong>Total Movements</strong>
-            </div>
-            <small class="text-muted d-block mt-2">All recorded stock changes</small>
-        </div>
-    </div>
-    <div class="col-md-3 mb-4">
-        <div class="stat-card">
-            <div class="stat-value text-success">
-                <i class="bi bi-arrow-up-circle"></i>
-                {% with in_count=stocks|dictsort:"movement_type"|length %}
-                    {{ in_count }}
-                {% endwith %}
-            </div>
-            <div class="stat-label">
-                <strong>Stock Added</strong>
-            </div>
-            <small class="text-muted d-block mt-2">Items received</small>
-        </div>
-    </div>
-    <div class="col-md-3 mb-4">
-        <div class="stat-card">
-            <div class="stat-value" style="color: #dc3545;">
-                <i class="bi bi-exclamation-circle"></i>
-                {{ low_stock_count }}
-            </div>
-            <div class="stat-label">
-                <strong>Low Stock Products</strong>
-            </div>
-            <small class="text-muted d-block mt-2">Below 10 units</small>
-        </div>
-    </div>
-    <div class="col-md-3 mb-4">
-        <div class="stat-card">
-            <div class="stat-value text-success">
-                <i class="bi bi-check-circle"></i> ✓
-            </div>
-            <div class="stat-label">
-                <strong>System Active</strong>
-            </div>
-            <small class="text-muted d-block mt-2">Ready to track stock</small>
-        </div>
-    </div>
-</div>
-
 <style>
-    .stat-card {
-        transition: all 0.3s ease;
+    .stock-page .card:hover,
+    .stock-page .inventory-card:hover,
+    .stock-page .stock-metric:hover {
+        transform: none;
     }
-    
-    .stat-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 8px 25px rgba(255, 215, 0, 0.2) !important;
+
+    .stock-metric,
+    .inventory-card {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
     }
-    
-    .table thead th {
-        border-bottom: 2px solid #FFD700;
-        background-color: #f8f9fa;
+
+    .stock-metric {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-height: 104px;
+        padding: 20px;
     }
-    
-    .badge {
-        padding: 0.5rem 0.8rem;
-        font-weight: 500;
+
+    .metric-icon {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: #f8f9fa;
+        font-size: 1.35rem;
+        flex-shrink: 0;
+    }
+
+    .metric-value {
+        color: #1a1a1a;
+        font-size: 1.45rem;
+        font-weight: 700;
+        line-height: 1.15;
+    }
+
+    .metric-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-top: 4px;
+    }
+
+    .inventory-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px 20px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .inventory-card table thead th {
+        background: #f8f9fa;
+        color: #495057;
+        font-size: 0.85rem;
+        letter-spacing: 0;
+        white-space: nowrap;
+    }
+
+    .watch-list {
+        padding: 10px 20px 20px;
+    }
+
+    .watch-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid #f1f3f5;
+    }
+
+    .watch-item:last-child {
+        border-bottom: 0;
+    }
+
+    .empty-state {
+        padding: 44px 20px;
+        text-align: center;
+    }
+
+    .empty-state.compact {
+        padding: 36px 20px;
+    }
+
+    .empty-state i {
+        color: #6c757d;
+        font-size: 2rem;
+        margin-bottom: 10px;
     }
 </style>
 

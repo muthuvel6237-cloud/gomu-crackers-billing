@@ -1,169 +1,128 @@
 {% extends 'billing/base.html' %}
 
-{% block title %}Add Items to Bill - GOMU CRACKERS{% endblock %}
+{% block title %}Add Products - GOMU CRACKERS{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <h1 class="page-title">
-            <i class="bi bi-cart-plus"></i> Add Items to Bill
-        </h1>
-        <p class="text-muted">Bill Number: <strong style="color: #FFD700;">{{ bill.bill_number }}</strong></p>
+<div class="d-flex justify-content-between align-items-center gap-3 mb-4 flex-wrap">
+    <div>
+        <h1 class="page-title mb-1"><i class="bi bi-cart-plus"></i> Step 3: Add Products</h1>
+        <div class="text-muted">
+            Bill <strong style="color:#b08a00;">{{ bill.bill_number }}</strong>
+            {% if bill.customer %}for <strong>{{ bill.customer.name }}</strong>{% else %}for <strong>Walk-in Customer</strong>{% endif %}
+        </div>
     </div>
-    <div class="col-md-4 text-end">
-        <a href="{% url 'bill_list' %}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Back
-        </a>
-    </div>
+    <a href="{% url 'bill_list' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Bills
+    </a>
 </div>
 
-<div class="row">
-    <!-- Add Item Form -->
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header" style="background: linear-gradient(135deg, #1a1a1a, #2a2a2a); color: #FFD700;">
-                <h5 class="mb-0">
-                    <i class="bi bi-plus-circle"></i> Add New Item
-                </h5>
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="billing-card">
+            <div class="billing-card-header">
+                <h5 class="mb-0"><i class="bi bi-search"></i> Search and Add Product</h5>
             </div>
-            <div class="card-body">
+            <div class="billing-card-body">
                 <form method="POST" id="add-item-form">
                     {% csrf_token %}
 
                     <div class="mb-3">
-                        <label for="product_select" class="form-label">
-                            <i class="bi bi-box"></i> Select Product *
-                        </label>
+                        <label for="product_select" class="form-label">Product</label>
                         {{ form.product }}
                         {% if form.product.errors %}
                             <div class="text-danger mt-2">{{ form.product.errors }}</div>
                         {% endif %}
                     </div>
 
-                    <!-- Price Display (Auto-filled) -->
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="bi bi-tag"></i> Product Price
-                        </label>
-                        <input type="text" id="unit_price_display" class="form-control" readonly style="background-color: #f0f0f0; font-weight: bold; color: #FFD700;">
-                        <small class="text-muted">This will auto-fill when you select a product</small>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Rate</label>
+                            <input type="text" id="unit_price_display" class="form-control counter-readonly" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Item Total</label>
+                            <input type="text" id="item_total_display" class="form-control counter-total" readonly>
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="quantity_input" class="form-label">
-                            <i class="bi bi-box2"></i> Quantity *
-                        </label>
-                        {{ form.quantity }}
-                        {% if form.quantity.errors %}
-                            <div class="text-danger mt-2">{{ form.quantity.errors }}</div>
-                        {% endif %}
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-6">
+                            <label for="quantity_input" class="form-label">Quantity</label>
+                            {{ form.quantity }}
+                            {% if form.quantity.errors %}
+                                <div class="text-danger mt-2">{{ form.quantity.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="discount_input" class="form-label">Discount (%)</label>
+                            {{ form.item_discount }}
+                            {% if form.item_discount.errors %}
+                                <div class="text-danger mt-2">{{ form.item_discount.errors }}</div>
+                            {% endif %}
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="discount_input" class="form-label">
-                            <i class="bi bi-percent"></i> Discount (%)
-                        </label>
-                        {{ form.item_discount }}
-                        {% if form.item_discount.errors %}
-                            <div class="text-danger mt-2">{{ form.item_discount.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Total Display -->
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="bi bi-calculator"></i> Item Total
-                        </label>
-                        <input type="text" id="item_total_display" class="form-control" readonly style="background-color: #fff3cd; font-weight: bold; color: #000; font-size: 1.1rem;">
-                    </div>
-
-                    <div class="alert alert-info">
+                    <div class="alert alert-info mt-3">
                         <i class="bi bi-info-circle"></i>
-                        <strong>How it works:</strong>
-                        <ul class="mb-0 mt-2">
-                            <li>Select a product from the dropdown</li>
-                            <li>Price will automatically appear</li>
-                            <li>Enter quantity and discount</li>
-                            <li>Total will calculate automatically</li>
-                        </ul>
+                        Select product, enter quantity, press Add. Stock reduces automatically.
                     </div>
 
                     <button type="submit" class="btn btn-primary btn-lg w-100">
-                        <i class="bi bi-check-circle"></i> Add Item to Bill
+                        <i class="bi bi-plus-circle"></i> Add Product
                     </button>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Current Bill Items -->
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header" style="background: linear-gradient(135deg, #1a1a1a, #2a2a2a); color: #FFD700;">
-                <h5 class="mb-0">
-                    <i class="bi bi-list-check"></i> Items in This Bill
-                </h5>
+    <div class="col-lg-6">
+        <div class="billing-card">
+            <div class="billing-card-header">
+                <h5 class="mb-0"><i class="bi bi-receipt"></i> Bill Summary</h5>
             </div>
-            <div class="card-body">
+            <div class="billing-card-body">
                 {% if items %}
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover">
+                    <table class="table table-sm table-hover align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th><i class="bi bi-box"></i> Product</th>
-                                <th><i class="bi bi-123"></i> Qty</th>
-                                <th><i class="bi bi-tag"></i> Price</th>
-                                <th><i class="bi bi-percent"></i> Discount</th>
-                                <th><i class="bi bi-calculator"></i> Total</th>
+                                <th>Product</th>
+                                <th class="text-end">Qty</th>
+                                <th class="text-end">Rate</th>
+                                <th class="text-end">Disc.</th>
+                                <th class="text-end">Total</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for item in items %}
                             <tr>
-                                <td>
-                                    <strong>{{ item.product.name }}</strong>
-                                </td>
-                                <td>{{ item.quantity }}</td>
-                                <td>₹{{ item.unit_price }}</td>
-                                <td>{{ item.item_discount }}%</td>
-                                <td style="color: #FFD700; font-weight: bold;">₹{{ item.item_total }}</td>
+                                <td><strong>{{ item.product.name }}</strong></td>
+                                <td class="text-end">{{ item.quantity }}</td>
+                                <td class="text-end">Rs. {{ item.unit_price }}</td>
+                                <td class="text-end">{{ item.item_discount }}%</td>
+                                <td class="text-end fw-bold">Rs. {{ item.item_total }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Bill Totals -->
-                <div class="card mt-3 bg-light">
-                    <div class="card-body">
-                        <div class="row mb-2">
-                            <div class="col-8">Subtotal:</div>
-                            <div class="col-4 text-end"><strong>₹{{ bill.subtotal }}</strong></div>
-                        </div>
-                        {% if bill.discount_amount > 0 %}
-                        <div class="row mb-2">
-                            <div class="col-8">Discount ({{ bill.discount_percent }}%):</div>
-                            <div class="col-4 text-end"><strong>-₹{{ bill.discount_amount }}</strong></div>
-                        </div>
-                        {% endif %}
-                        <hr>
-                        <div class="row">
-                            <div class="col-8"><strong>Bill Total:</strong></div>
-                            <div class="col-4 text-end" style="color: #FFD700; font-size: 1.2rem; font-weight: bold;">₹{{ bill.total_amount }}</div>
-                        </div>
-                    </div>
+                <div class="bill-total-box">
+                    <div><span>Subtotal</span><strong>Rs. {{ bill.subtotal }}</strong></div>
+                    {% if bill.discount_amount > 0 %}
+                    <div><span>Bill Discount</span><strong>-Rs. {{ bill.discount_amount }}</strong></div>
+                    {% endif %}
+                    <div class="grand-total"><span>Total</span><strong>Rs. {{ bill.total_amount }}</strong></div>
                 </div>
 
-                <div class="mt-3 d-grid gap-2">
-                    <a href="{% url 'bill_finalize' bill.id %}" class="btn btn-success btn-lg">
-                        <i class="bi bi-check-circle"></i> Complete & Generate Bill
-                    </a>
-                </div>
+                <a href="{% url 'bill_finalize' bill.id %}" class="btn btn-success btn-lg w-100 mt-3">
+                    <i class="bi bi-check-circle"></i> Finish & Print Bill
+                </a>
                 {% else %}
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    <strong>No items added yet!</strong>
-                    <p class="mt-2 mb-0">Add at least one product to create a bill.</p>
+                <div class="empty-bill">
+                    <i class="bi bi-bag-plus"></i>
+                    <h5>No products added yet</h5>
+                    <p class="text-muted">Search a product and add it to start the bill.</p>
                 </div>
                 {% endif %}
             </div>
@@ -172,22 +131,68 @@
 </div>
 
 <style>
-    .form-control, .form-select {
-        border: 1px solid #ddd;
-        border-radius: 5px;
+    .billing-card {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        overflow: hidden;
     }
-    
-    .form-control:focus, .form-select:focus {
-        border-color: #FFD700;
-        box-shadow: 0 0 0 0.2rem rgba(255, 215, 0, 0.25);
+
+    .billing-card-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid #e9ecef;
+        background: #f8f9fa;
     }
-    
-    .table-hover tbody tr:hover {
-        background-color: #FFF8F3;
+
+    .billing-card-body {
+        padding: 20px;
+    }
+
+    .counter-readonly {
+        background: #f8f9fa;
+        font-weight: 700;
+    }
+
+    .counter-total {
+        background: #fff8d6;
+        font-weight: 700;
+        color: #1a1a1a;
+    }
+
+    .bill-total-box {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 14px;
+        background: #f8f9fa;
+    }
+
+    .bill-total-box div {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 6px 0;
+    }
+
+    .grand-total {
+        border-top: 1px solid #dee2e6;
+        margin-top: 6px;
+        padding-top: 12px !important;
+        font-size: 1.2rem;
+    }
+
+    .empty-bill {
+        text-align: center;
+        padding: 48px 20px;
+    }
+
+    .empty-bill i {
+        color: #6c757d;
+        font-size: 2.2rem;
+        margin-bottom: 10px;
     }
 </style>
 
-<!-- Product Data Script (Generated from Django) -->
 <script type="text/javascript">
     var productData = {};
 </script>
@@ -195,106 +200,89 @@
 {% for product in form.product.field.queryset %}
 <script type="text/javascript">
     productData['{{ product.id }}'] = {
-        'name': '{{ product.name }}',
-        'price': '{{ product.price }}',
-        'category': '{{ product.category }}'
+        name: '{{ product.name|escapejs }}',
+        price: '{{ product.price }}',
+        quantity: '{{ product.quantity }}'
     };
 </script>
 {% endfor %}
 
 <script type="text/javascript">
-    // Product selection change event
-    document.getElementById('product_select').addEventListener('change', function() {
-        var productId = this.value;
-        var unitPriceDisplay = document.getElementById('unit_price_display');
-        var quantityInput = document.getElementById('quantity_input');
-        
-        if (productId && productData[productId]) {
-            // Display the product price
-            var price = productData[productId]['price'];
-            unitPriceDisplay.value = '₹' + parseFloat(price).toFixed(2);
-            
-            // Reset quantity to 1
-            quantityInput.value = '1';
-            
-            // Calculate initial total
-            calculateTotal();
-        } else {
-            unitPriceDisplay.value = '';
-            document.getElementById('item_total_display').value = '';
-        }
-    });
+    function formatMoney(value) {
+        return 'Rs. ' + Number(value || 0).toFixed(2);
+    }
 
-    // Calculate total when quantity or discount changes
     function calculateTotal() {
         var productId = document.getElementById('product_select').value;
         var quantity = parseInt(document.getElementById('quantity_input').value) || 0;
         var discount = parseFloat(document.getElementById('discount_input').value) || 0;
         var itemTotalDisplay = document.getElementById('item_total_display');
-        
-        if (productId && productData[productId]) {
-            var price = parseFloat(productData[productId]['price']);
-            var subtotal = quantity * price;
-            var discountAmount = (subtotal * discount) / 100;
-            var total = subtotal - discountAmount;
-            
-            itemTotalDisplay.value = '₹' + total.toFixed(2);
-        }
-    }
-
-    // Listen for changes in quantity and discount
-    document.getElementById('quantity_input').addEventListener('change', calculateTotal);
-    document.getElementById('quantity_input').addEventListener('input', calculateTotal);
-    document.getElementById('discount_input').addEventListener('change', calculateTotal);
-    document.getElementById('discount_input').addEventListener('input', calculateTotal);
-
-    // Form validation before submit
-    document.getElementById('add-item-form').addEventListener('submit', function(e) {
-        var productId = document.getElementById('product_select').value;
-        var quantity = parseInt(document.getElementById('quantity_input').value);
-        
-        if (!productId) {
-            e.preventDefault();
-            alert('Please select a product!');
-            return false;
-        }
-        
-        if (!quantity || quantity <= 0) {
-            e.preventDefault();
-            alert('Please enter a valid quantity!');
-            return false;
-        }
-    });
-</script>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-<script>
-$(document).ready(function () {
-    $('#product_select').select2({
-        placeholder: 'Search products...',
-        width: '100%'
-    });
-
-    $('#product_select').on('change', function () {
-        var productId = $(this).val();
 
         if (productId && productData[productId]) {
             var price = parseFloat(productData[productId].price);
-
-            $('#unit_price_display').val('₹' + price.toFixed(2));
-            $('#quantity_input').val($('#quantity_input').val() || 1);
-
-            calculateTotal();
+            var subtotal = quantity * price;
+            var discountAmount = (subtotal * discount) / 100;
+            itemTotalDisplay.value = formatMoney(subtotal - discountAmount);
         } else {
-            $('#unit_price_display').val('');
-            $('#item_total_display').val('');
+            itemTotalDisplay.value = '';
         }
+    }
+
+    function updateSelectedProductDetails() {
+        var productSelect = document.getElementById('product_select');
+        var priceDisplay = document.getElementById('unit_price_display');
+        var quantityInput = document.getElementById('quantity_input');
+        var productId = productSelect.value;
+
+        if (productId && productData[productId]) {
+            priceDisplay.value = formatMoney(productData[productId].price);
+            quantityInput.value = quantityInput.value || 1;
+        } else {
+            priceDisplay.value = '';
+        }
+
+        calculateTotal();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var productSelect = document.getElementById('product_select');
+        var quantityInput = document.getElementById('quantity_input');
+        var discountInput = document.getElementById('discount_input');
+
+        productSelect.addEventListener('change', updateSelectedProductDetails);
+        productSelect.addEventListener('input', updateSelectedProductDetails);
+
+        quantityInput.addEventListener('input', calculateTotal);
+        discountInput.addEventListener('input', calculateTotal);
+
+        document.getElementById('add-item-form').addEventListener('submit', function (event) {
+            var quantity = parseInt(quantityInput.value);
+            if (!productSelect.value) {
+                event.preventDefault();
+                alert('Please select a product.');
+            } else if (!quantity || quantity <= 0) {
+                event.preventDefault();
+                alert('Please enter a valid quantity.');
+            }
+        });
+
+        updateSelectedProductDetails();
     });
-});
 </script>
 
-
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
+        $('#product_select').select2({
+            placeholder: 'Search product...',
+            width: '100%'
+        }).on('select2:select change', function () {
+            updateSelectedProductDetails();
+        });
+    }
+});
+</script>
 {% endblock %}

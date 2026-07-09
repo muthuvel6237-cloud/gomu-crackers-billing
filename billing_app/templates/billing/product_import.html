@@ -1,0 +1,86 @@
+{% extends 'billing/base.html' %}
+
+{% block title %}Import Products - Crackers Billing{% endblock %}
+
+{% block content %}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center gap-3 mb-4 flex-wrap">
+        <h2 class="fw-bold">
+            <i class="bi bi-upload"></i> Import Products
+        </h2>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'product_sample_excel' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-download"></i> Sample Excel
+            </a>
+            <a href="{% url 'product_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Upload Product Excel</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ form.file.id_for_label }}">Excel File</label>
+                            {{ form.file }}
+                            {% if form.file.help_text %}
+                                <div class="form-text">{{ form.file.help_text }}</div>
+                            {% endif %}
+                            {% for error in form.file.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="form-check mb-4">
+                            {{ form.update_existing }}
+                            <label class="form-check-label" for="{{ form.update_existing.id_for_label }}">
+                                {{ form.update_existing.label }}
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload"></i> Import Products
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Excel Format</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">Use these columns:</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr><th>name</th><td>Required</td></tr>
+                                <tr><th>price</th><td>Required</td></tr>
+                                <tr><th>category</th><td>cracker, sparklers, fancy, bomb, fountain, other</td></tr>
+                                <tr><th>unit</th><td>packet, piece, box, case</td></tr>
+                                <tr><th>quantity</th><td>Number, defaults to 0</td></tr>
+                                <tr><th>description</th><td>Optional</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <a href="{% url 'product_sample_excel' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-download"></i> Download Sample
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

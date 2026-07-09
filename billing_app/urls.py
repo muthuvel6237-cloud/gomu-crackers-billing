@@ -19,6 +19,10 @@ urlpatterns = [
     # Products
     path('products/', views.product_list, name='product_list'),
     path('products/create/', views.product_create, name='product_create'),
+    path('products/import/', views.product_import, name='product_import'),
+    path('products/import/sample/', views.product_sample_excel, name='product_sample_excel'),
+    path('products/export/excel/', views.product_export_excel, name='product_export_excel'),
+    path('products/export/pdf/', views.product_export_pdf, name='product_export_pdf'),
     path('products/<int:pk>/edit/', views.product_update, name='product_update'),
     path('products/<int:pk>/delete/', views.product_delete, name='product_delete'),
     

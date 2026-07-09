@@ -85,7 +85,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for item in bill.bill_items_set.all %}
+                            {% for item in bill.billitem_set.all %}
                             <tr>
                                 <td>{{ item.product.name }}</td>
                                 <td class="text-center">{{ item.quantity }}</td>

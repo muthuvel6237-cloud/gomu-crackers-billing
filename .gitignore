@@ -26,4 +26,9 @@ Thumbs.db
 # Virtual Environment
 venv/
 env/
+.venv/
 .env
+
+# Local runtime output
+tmp/
+node-server*.log

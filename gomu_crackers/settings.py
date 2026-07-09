@@ -6,6 +6,7 @@ from .runtime_paths import (
     ensure_directory,
     ensure_file,
     is_frozen,
+    is_railway,
     resource_path,
     resource_root,
 )
@@ -20,14 +21,46 @@ SECRET_KEY = os.environ.get(
 
 DEBUG = os.environ.get('DJANGO_DEBUG', '0' if is_frozen() else '1').lower() in {'1', 'true', 'yes', 'on'}
 
-# Allow Railway domain + localhost for development
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+# Allow Railway domains + localhost for development.
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get(
+        'ALLOWED_HOSTS',
+        '127.0.0.1,localhost,.up.railway.app,.railway.app',
+    ).split(',')
+    if host.strip()
+]
 
 # CSRF trusted origins for Railway deployment
-CSRF_TRUSTED_ORIGINS = []
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.up.railway.app',
+    'https://*.railway.app',
+]
 csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
 if csrf_origins:
-    CSRF_TRUSTED_ORIGINS = csrf_origins.split(',')
+    CSRF_TRUSTED_ORIGINS = [
+        origin.strip()
+        for origin in csrf_origins.split(',')
+        if origin.strip()
+    ]
+
+railway_public_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
+if railway_public_domain:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{railway_public_domain}')
+
+if is_railway():
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = os.environ.get('DJANGO_SECURE_SSL_REDIRECT', '1').lower() in {
+        '1',
+        'true',
+        'yes',
+        'on',
+    }
+    SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS', '31536000'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
 
 # Application definition

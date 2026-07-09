@@ -1,118 +1,173 @@
 {% extends 'billing/base.html' %}
 
-{% block title %}Create Bill - Crackers Billing{% endblock %}
+{% block title %}New Bill - Crackers Billing{% endblock %}
 
 {% block content %}
-<div class="page-title">
-    <i class="bi bi-file-earmark-plus"></i> Create New Bill
+<div class="d-flex justify-content-between align-items-center gap-3 mb-4 flex-wrap">
+    <div>
+        <h1 class="page-title mb-1"><i class="bi bi-receipt"></i> New Bill</h1>
+        <div class="text-muted">Step 1 customer, Step 2 payment, Step 3 add products.</div>
+    </div>
+    <a href="{% url 'bill_list' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Bills
+    </a>
 </div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="mb-4">Bill Details</h5>
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    
-                    {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            {% for error in form.non_field_errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
+<form method="post" novalidate>
+    {% csrf_token %}
 
-                    <div class="mb-3">
-                        <label for="{{ form.customer.id_for_label }}" class="form-label">Customer</label>
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            {% for error in form.non_field_errors %}
+                <p class="mb-0">{{ error }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="workflow-card">
+                <div class="step-header">
+                    <span class="step-number">1</span>
+                    <div>
+                        <h5 class="mb-0">Customer</h5>
+                        <small class="text-muted">Use an existing customer, type a new one, or leave walk-in.</small>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.customer.id_for_label }}" class="form-label">Existing Customer</label>
                         {{ form.customer }}
                         {% if form.customer.errors %}
                             <div class="text-danger">{{ form.customer.errors }}</div>
                         {% endif %}
-                        <small class="text-muted">Select a customer or leave blank for walk-in customers</small>
                     </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.discount_percent.id_for_label }}" class="form-label">Discount (%)</label>
-                                {{ form.discount_percent }}
-                                {% if form.discount_percent.errors %}
-                                    <div class="text-danger">{{ form.discount_percent.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
+                    <div class="col-md-6">
+                        <label class="form-label" for="quick_customer_name">New Customer Name</label>
+                        <input type="text" id="quick_customer_name" name="quick_customer_name" class="form-control"
+                               placeholder="Optional">
                     </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.payment_method.id_for_label }}" class="form-label">Payment Method *</label>
-                                {{ form.payment_method }}
-                                {% if form.payment_method.errors %}
-                                    <div class="text-danger">{{ form.payment_method.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="{{ form.payment_received.id_for_label }}" class="form-label">Payment Received (₹)</label>
-                                {{ form.payment_received }}
-                                {% if form.payment_received.errors %}
-                                    <div class="text-danger">{{ form.payment_received.errors }}</div>
-                                {% endif %}
-                            </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="quick_customer_phone">New Customer Phone</label>
+                        <input type="text" id="quick_customer_phone" name="quick_customer_phone" class="form-control"
+                               placeholder="Optional">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Counter Sale</label>
+                        <div class="walkin-box">
+                            <i class="bi bi-person-walking"></i> Leave customer blank for Walk-in Customer
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-check-circle"></i> Create Bill
-                        </button>
-                        <a href="{% url 'bill_list' %}" class="btn btn-secondary btn-lg">
-                            <i class="bi bi-x-circle"></i> Cancel
-                        </a>
+            <div class="workflow-card mt-4">
+                <div class="step-header">
+                    <span class="step-number">2</span>
+                    <div>
+                        <h5 class="mb-0">Payment & Discount</h5>
+                        <small class="text-muted">You can keep payment received as 0 and update later.</small>
                     </div>
-                </form>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="{{ form.discount_percent.id_for_label }}" class="form-label">Discount (%)</label>
+                        {{ form.discount_percent }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.payment_method.id_for_label }}" class="form-label">Payment Method</label>
+                        {{ form.payment_method }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.payment_received.id_for_label }}" class="form-label">Payment Received (Rs.)</label>
+                        {{ form.payment_received }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="workflow-card sticky-summary">
+                <div class="step-header">
+                    <span class="step-number">3</span>
+                    <div>
+                        <h5 class="mb-0">Start Bill</h5>
+                        <small class="text-muted">After this, add products and print.</small>
+                    </div>
+                </div>
+
+                <div class="step-list">
+                    <div><i class="bi bi-check-circle"></i> Customer is optional</div>
+                    <div><i class="bi bi-check-circle"></i> Products are added next</div>
+                    <div><i class="bi bi-check-circle"></i> Stock reduces automatically</div>
+                    <div><i class="bi bi-check-circle"></i> PDF bill is generated at finish</div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100 mt-4">
+                    <i class="bi bi-arrow-right-circle"></i> Continue to Products
+                </button>
             </div>
         </div>
     </div>
+</form>
 
-    <div class="col-md-4">
-        <div class="card bg-light">
-            <div class="card-body">
-                <h5>Bill Creation Steps</h5>
-                <ol class="small text-muted">
-                    <li>Fill in bill details</li>
-                    <li>Select customer (optional)</li>
-                    <li>Set discount and GST rate</li>
-                    <li>Choose payment method</li>
-                    <li>Create bill</li>
-                    <li>Add items to bill</li>
-                    <li>Finalize and print</li>
-                </ol>
-                <hr>
-                <h6>Note:</h6>
-                <p class="small text-muted">
-                    After creating the bill, you'll be able to add products and finalize it.
-                </p>
-            </div>
-        </div>
-    </div>
-</div>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<style>
+    .workflow-card {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        padding: 22px;
+    }
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    .step-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
 
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    .step-number {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: #FFD700;
+        color: #1a1a1a;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
 
-<script>
-$(document).ready(function () {
-    $('#customer_select').select2({
-        placeholder: 'Search Customer...',
-        width: '100%'
-    });
-});
-</script>
+    .walkin-box {
+        min-height: 46px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px dashed #adb5bd;
+        border-radius: 6px;
+        color: #495057;
+        padding: 0 12px;
+        background: #f8f9fa;
+    }
+
+    .step-list {
+        display: grid;
+        gap: 12px;
+        color: #495057;
+    }
+
+    .step-list i {
+        color: #198754;
+        margin-right: 8px;
+    }
+
+    .sticky-summary {
+        position: sticky;
+        top: 20px;
+    }
+</style>
 {% endblock %}

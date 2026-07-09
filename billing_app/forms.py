@@ -29,6 +29,23 @@ class ProductForm(forms.ModelForm):
         }
 
 
+class ProductImportForm(forms.Form):
+    file = forms.FileField(
+        label='Product Excel file',
+        widget=forms.ClearableFileInput(attrs={
+            'class': 'form-control',
+            'accept': '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        }),
+        help_text='Excel columns: name, category, unit, price, quantity, description',
+    )
+    update_existing = forms.BooleanField(
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        label='Update existing products with the same name',
+    )
+
+
 class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
@@ -43,13 +60,14 @@ class CustomerForm(forms.ModelForm):
 
 class BillForm(forms.ModelForm):
     customer = forms.ModelChoiceField(
-    queryset=Customer.objects.all(),
-    empty_label="Search Customer...",
-    widget=forms.Select(attrs={
-        'class': 'form-control',
-        'id': 'customer_select'
-    })
-)
+        queryset=Customer.objects.all(),
+        required=False,
+        empty_label="Walk-in Customer",
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'id': 'customer_select'
+        })
+    )
     class Meta:
         model = Bill
         fields = ['customer', 'discount_percent', 'payment_method', 'payment_received']
@@ -88,7 +106,7 @@ class StockForm(forms.ModelForm):
         model = Stock
         fields = ['product', 'movement_type', 'quantity', 'unit', 'reason']
         widgets = {
-            'product': forms.Select(attrs={'class': 'form-control'}),
+            'product': forms.Select(attrs={'class': 'form-control', 'id': 'stock_product_select'}),
             'movement_type': forms.Select(attrs={'class': 'form-control'}),
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
             'unit': forms.Select(attrs={'class': 'form-control'}),

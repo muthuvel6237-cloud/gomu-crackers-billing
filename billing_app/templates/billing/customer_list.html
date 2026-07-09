@@ -3,32 +3,60 @@
 {% block title %}Customers - Crackers Billing{% endblock %}
 
 {% block content %}
-<div class="page-title">
-    <i class="bi bi-people"></i> Customer Management
-</div>
-
-<div class="mb-4">
-    <a href="{% url 'customer_create' %}" class="btn btn-primary btn-lg">
-        <i class="bi bi-person-plus"></i> Add New Customer
+<div class="d-flex justify-content-between align-items-center gap-3 mb-4 flex-wrap">
+    <div>
+        <h1 class="page-title mb-1"><i class="bi bi-people"></i> Customers</h1>
+        <div class="text-muted">Find customers quickly or create a new customer for billing.</div>
+    </div>
+    <a href="{% url 'customer_create' %}" class="btn btn-primary">
+        <i class="bi bi-person-plus"></i> Add Customer
     </a>
 </div>
 
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="customer-summary">
+            <div class="summary-icon"><i class="bi bi-people"></i></div>
+            <div>
+                <div class="summary-value">{{ customer_count }}</div>
+                <div class="summary-label">Customers Shown</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="customer-search-card">
+            <form method="get" class="d-flex gap-2">
+                <input type="text" name="q" class="form-control" value="{{ search_query }}"
+                       placeholder="Search name, phone, or city">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Search
+                </button>
+                <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            </form>
+        </div>
+    </div>
+</div>
+
 <div class="card">
-    <div class="card-header bg-light">
-        <h5 class="mb-0">Customers List</h5>
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Customer Directory</h5>
+        <a href="{% url 'bill_create' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-receipt"></i> New Bill
+        </a>
     </div>
     <div class="card-body">
         {% if customers %}
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>Customer Name</th>
+                            <th>Name</th>
                             <th>Phone</th>
-                            <th>Email</th>
                             <th>City</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            <th>Address</th>
+                            <th class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -36,21 +64,14 @@
                         <tr>
                             <td><strong>{{ customer.name }}</strong></td>
                             <td>{{ customer.phone|default:"N/A" }}</td>
-                            <td>{{ customer.email|default:"N/A" }}</td>
                             <td>{{ customer.city|default:"N/A" }}</td>
-                            <td>
-                                {% if customer.is_active %}
-                                    <span class="badge bg-success">Active</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Inactive</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{% url 'customer_update' customer.id %}" class="btn btn-sm btn-warning">
+                            <td>{{ customer.address|default:"-"|truncatewords:8 }}</td>
+                            <td class="text-end">
+                                <a href="{% url 'customer_update' customer.id %}" class="btn btn-sm btn-outline-secondary">
                                     <i class="bi bi-pencil"></i> Edit
                                 </a>
-                                <a href="{% url 'customer_delete' customer.id %}" class="btn btn-sm btn-danger">
-                                    <i class="bi bi-trash"></i> Delete
+                                <a href="{% url 'customer_delete' customer.id %}" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
                                 </a>
                             </td>
                         </tr>
@@ -59,11 +80,53 @@
                 </table>
             </div>
         {% else %}
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> No customers added yet. 
-                <a href="{% url 'customer_create' %}" class="alert-link">Add your first customer</a>
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle"></i> No customers found.
+                <a href="{% url 'customer_create' %}" class="alert-link">Add customer</a>
             </div>
         {% endif %}
     </div>
 </div>
+
+<style>
+    .customer-summary,
+    .customer-search-card {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        padding: 18px;
+    }
+
+    .customer-summary {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-height: 80px;
+    }
+
+    .summary-icon {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: #fff8d6;
+        color: #1a1a1a;
+        font-size: 1.3rem;
+    }
+
+    .summary-value {
+        color: #1a1a1a;
+        font-size: 1.6rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .summary-label {
+        color: #6c757d;
+        margin-top: 4px;
+    }
+</style>
 {% endblock %}

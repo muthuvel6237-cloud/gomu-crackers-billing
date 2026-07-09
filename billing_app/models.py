@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from datetime import datetime
 
@@ -121,6 +121,12 @@ class Bill(models.Model):
         self.save()
         return self.total_amount
 
+    def delete(self, *args, **kwargs):
+        with transaction.atomic():
+            for item in self.billitem_set.select_related('product').all():
+                item.delete()
+            return super().delete(*args, **kwargs)
+
 class BillItem(models.Model):
     bill = models.ForeignKey(Bill, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -131,26 +137,29 @@ class BillItem(models.Model):
     item_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     def save(self, *args, **kwargs):
-        # Automatically get product price and unit
-        self.unit_price = self.product.price
-        self.unit = self.product.get_unit_display()
+        with transaction.atomic():
+            if self.pk:
+                old_item = BillItem.objects.select_related('product').get(pk=self.pk)
+                old_product = Product.objects.select_for_update().get(pk=old_item.product_id)
+                old_product.quantity += old_item.quantity
+                old_product.save()
 
-        # Calculate total
-        subtotal = self.quantity * self.unit_price
-        discount_amount = (subtotal * self.item_discount / 100)
-        self.item_total = subtotal - discount_amount
+            product = Product.objects.select_for_update().get(pk=self.product_id)
+            self.product = product
+            self.unit_price = product.price
+            self.unit = product.get_unit_display()
 
-        # Check if this is a new item (not being edited)
-        if self.pk is None:
-            # Check if enough stock available
-            if self.product.quantity < self.quantity:
-                raise ValueError(f'Insufficient stock! Available: {self.product.quantity} {self.unit}')
-            
-            # Decrease product stock
-            self.product.quantity -= self.quantity
-            self.product.save()
-        
-        super().save(*args, **kwargs)
+            if product.quantity < self.quantity:
+                raise ValueError(f'Insufficient stock! Available: {product.quantity} {self.unit}')
+
+            subtotal = self.quantity * self.unit_price
+            discount_amount = (subtotal * self.item_discount / 100)
+            self.item_total = subtotal - discount_amount
+
+            product.quantity -= self.quantity
+            product.save()
+
+            super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         # Restore stock when item is deleted
@@ -181,6 +190,7 @@ class Stock(models.Model):
     quantity = models.IntegerField()
     unit = models.CharField(max_length=20, choices=UNIT_CHOICES, default='piece', help_text='Unit of measurement')
     reason = models.CharField(max_length=200, blank=True, null=True)
+    previous_quantity = models.IntegerField(blank=True, null=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -188,6 +198,50 @@ class Stock(models.Model):
     
     def __str__(self):
         return f"{self.product.name} ({self.get_unit_display()}) - {self.movement_type}: {self.quantity}"
+
+    def _apply_to_product(self):
+        if self.movement_type == 'in':
+            self.product.quantity += self.quantity
+        elif self.movement_type == 'out':
+            if self.product.quantity < self.quantity:
+                raise ValueError(
+                    f'Insufficient stock! Available: {self.product.quantity} {self.product.get_unit_display()}'
+                )
+            self.product.quantity -= self.quantity
+        elif self.movement_type == 'adjustment':
+            self.product.quantity = self.quantity
+        self.product.save()
+
+    def _restore_previous_stock(self, old_stock):
+        if old_stock.previous_quantity is not None:
+            old_stock.product.quantity = old_stock.previous_quantity
+            old_stock.product.save()
+            return
+
+        if old_stock.movement_type == 'in':
+            old_stock.product.quantity -= old_stock.quantity
+        elif old_stock.movement_type == 'out':
+            old_stock.product.quantity += old_stock.quantity
+        else:
+            return
+        old_stock.product.save()
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            old_stock = None
+            if self.pk:
+                old_stock = Stock.objects.select_related('product').get(pk=self.pk)
+                self._restore_previous_stock(old_stock)
+
+            self.product.refresh_from_db()
+            self.previous_quantity = self.product.quantity
+            self._apply_to_product()
+            super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        with transaction.atomic():
+            self._restore_previous_stock(self)
+            super().delete(*args, **kwargs)
     
 
     

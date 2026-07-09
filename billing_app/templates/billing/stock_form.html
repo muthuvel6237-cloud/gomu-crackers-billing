@@ -33,7 +33,14 @@
                         <label for="{{ form.product.id_for_label }}" class="form-label">
                             <i class="bi bi-box"></i> Product *
                         </label>
-                        {{ form.product }}
+                        <input type="text"
+                               id="product_search_box"
+                               class="form-control"
+                               placeholder="Type product name to search">
+                        <div id="product_suggestions" class="product-suggestions d-none"></div>
+                        <div class="d-none">
+                            {{ form.product }}
+                        </div>
                         {% if form.product.errors %}
                             <div class="text-danger mt-2">
                                 {{ form.product.errors }}
@@ -53,9 +60,9 @@
                             </div>
                         {% endif %}
                         <small class="text-muted d-block mt-1">
-                            <strong>IN:</strong> Add stock | 
-                            <strong>OUT:</strong> Remove from sale | 
-                            <strong>ADJ:</strong> Correct count
+                            <strong>Stock In:</strong> Add stock | 
+                            <strong>Stock Out:</strong> Remove stock | 
+                            <strong>Adjustment:</strong> Set the correct current count
                         </small>
                     </div>
 
@@ -148,5 +155,131 @@
         </div>
     </div>
 </div>
+
+<style>
+    .product-suggestions {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+        margin-bottom: 8px;
+        max-height: 220px;
+        overflow-y: auto;
+    }
+
+    .product-suggestion-item {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        text-align: left;
+    }
+
+    .product-suggestion-item:hover,
+    .product-suggestion-item:focus {
+        background: #fff8d6;
+        outline: none;
+    }
+
+    .product-suggestion-meta {
+        color: #6c757d;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchBox = document.getElementById('product_search_box');
+    const select = document.getElementById('stock_product_select');
+    const suggestions = document.getElementById('product_suggestions');
+
+    if (!searchBox || !select || !suggestions) {
+        return;
+    }
+
+    const products = Array.from(select.options)
+        .filter(option => option.value)
+        .map(option => ({
+            value: option.value,
+            label: option.text.trim(),
+            option: option,
+        }));
+
+    function selectedProductLabel() {
+        const selected = select.options[select.selectedIndex];
+        return selected && selected.value ? selected.text.trim() : '';
+    }
+
+    function syncSearchWithSelection() {
+        const label = selectedProductLabel();
+        if (label) {
+            searchBox.value = label;
+        }
+    }
+
+    function renderSuggestions(query) {
+        const normalizedQuery = query.trim().toLowerCase();
+        suggestions.innerHTML = '';
+
+        if (!normalizedQuery) {
+            suggestions.classList.add('d-none');
+            Array.from(select.options).forEach(option => option.hidden = false);
+            return;
+        }
+
+        const matches = products
+            .filter(product => product.label.toLowerCase().includes(normalizedQuery))
+            .slice(0, 8);
+
+        products.forEach(product => {
+            product.option.hidden = !product.label.toLowerCase().includes(normalizedQuery);
+        });
+
+        if (!matches.length) {
+            suggestions.innerHTML = '<div class="p-3 text-muted">No matching products</div>';
+            suggestions.classList.remove('d-none');
+            return;
+        }
+
+        matches.forEach(product => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'product-suggestion-item';
+            item.innerHTML = `<span>${product.label}</span><span class="product-suggestion-meta">Select</span>`;
+            item.addEventListener('click', function () {
+                select.value = product.value;
+                searchBox.value = product.label;
+                suggestions.classList.add('d-none');
+                Array.from(select.options).forEach(option => option.hidden = false);
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+            suggestions.appendChild(item);
+        });
+
+        suggestions.classList.remove('d-none');
+    }
+
+    searchBox.addEventListener('input', function () {
+        renderSuggestions(searchBox.value);
+    });
+
+    searchBox.addEventListener('focus', function () {
+        renderSuggestions(searchBox.value);
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!suggestions.contains(event.target) && event.target !== searchBox) {
+            suggestions.classList.add('d-none');
+        }
+    });
+
+    select.addEventListener('change', syncSearchWithSelection);
+    syncSearchWithSelection();
+});
+</script>
 
 {% endblock %}
