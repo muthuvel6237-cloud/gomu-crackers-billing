@@ -13,7 +13,17 @@ def is_frozen() -> bool:
 
 def is_railway() -> bool:
     """Detect if running on Railway (Linux cloud environment)."""
-    return bool(os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("PORT"))
+    return bool(os.environ.get("RAILWAY_ENVIRONMENT"))
+
+
+def is_render() -> bool:
+    """Detect if running on Render (Linux cloud environment)."""
+    return bool(os.environ.get("RENDER"))
+
+
+def is_cloud() -> bool:
+    """Detect if running on any cloud platform."""
+    return is_railway() or is_render() or bool(os.environ.get("PORT"))
 
 
 def project_root() -> Path:

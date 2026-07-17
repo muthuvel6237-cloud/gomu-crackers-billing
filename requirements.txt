@@ -1,8 +1,5 @@
 Django>=5.2,<6.0
 reportlab>=4.0
-pywebview>=5.0
-waitress>=3.0
-pyinstaller>=6.0
 gunicorn>=22.0
 whitenoise>=6.5
 dj-database-url>=2.0

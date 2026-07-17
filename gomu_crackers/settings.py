@@ -7,6 +7,8 @@ from .runtime_paths import (
     ensure_file,
     is_frozen,
     is_railway,
+    is_render,
+    is_cloud,
     resource_path,
     resource_root,
 )
@@ -19,22 +21,23 @@ SECRET_KEY = os.environ.get(
     'django-insecure-!x(g+3cuil95j%%qlhx@^ky5t(o-*qwxdslt2ed$$=u&693v57'
 )
 
-DEBUG = os.environ.get('DJANGO_DEBUG', '0' if is_frozen() else '1').lower() in {'1', 'true', 'yes', 'on'}
+DEBUG = os.environ.get('DJANGO_DEBUG', '0' if is_frozen() or is_cloud() else '1').lower() in {'1', 'true', 'yes', 'on'}
 
-# Allow Railway domains + localhost for development.
+# Allow Railway, Render domains + localhost for development.
 ALLOWED_HOSTS = [
     host.strip()
     for host in os.environ.get(
         'ALLOWED_HOSTS',
-        '127.0.0.1,localhost,.up.railway.app,.railway.app',
+        '127.0.0.1,localhost,.up.railway.app,.railway.app,.onrender.com',
     ).split(',')
     if host.strip()
 ]
 
-# CSRF trusted origins for Railway deployment
+# CSRF trusted origins for Railway + Render deployment
 CSRF_TRUSTED_ORIGINS = [
     'https://*.up.railway.app',
     'https://*.railway.app',
+    'https://*.onrender.com',
 ]
 csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
 if csrf_origins:
@@ -48,7 +51,7 @@ railway_public_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
 if railway_public_domain:
     CSRF_TRUSTED_ORIGINS.append(f'https://{railway_public_domain}')
 
-if is_railway():
+if is_railway() or is_render():
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
