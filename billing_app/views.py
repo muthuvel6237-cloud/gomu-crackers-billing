@@ -941,6 +941,7 @@ def generate_bill_pdf(request, pk):
     response['Content-Disposition'] = f'attachment; filename="Bill_{bill.bill_number}.pdf"'
 
     return response
+
 # ========== API ENDPOINTS ==========
 def get_product_price(request, product_id):
     try:
@@ -952,3 +953,13 @@ def get_product_price(request, product_id):
         })
     except Product.DoesNotExist:
         return JsonResponse({'error': 'Product not found'}, status=404)
+
+def remove_bill_item(request, bill_pk, item_pk):
+    """Remove a single item from a bill and recalculate totals."""
+    bill = get_object_or_404(Bill, pk=bill_pk)
+    item = get_object_or_404(BillItem, pk=item_pk, bill=bill)
+    product_name = item.product.name
+    item.delete()
+    bill.calculate_total()
+    messages.success(request, f'"{product_name}" removed from bill.')
+    return redirect('bill_items', pk=bill_pk)

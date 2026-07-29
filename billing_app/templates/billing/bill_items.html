@@ -64,7 +64,7 @@
 
                     <div class="alert alert-info mt-3">
                         <i class="bi bi-info-circle"></i>
-                        Select product, enter quantity, press Add. Stock reduces automatically.
+                        Select product, enter quantity, press <strong>Enter</strong> or click Add. Stock reduces automatically.
                     </div>
 
                     <button type="submit" class="btn btn-primary btn-lg w-100">
@@ -91,6 +91,7 @@
                                 <th class="text-end">Rate</th>
                                 <th class="text-end">Disc.</th>
                                 <th class="text-end">Total</th>
+                                <th class="text-center">Remove</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -101,6 +102,14 @@
                                 <td class="text-end">Rs. {{ item.unit_price }}</td>
                                 <td class="text-end">{{ item.item_discount }}%</td>
                                 <td class="text-end fw-bold">Rs. {{ item.item_total }}</td>
+                                <td class="text-center">
+                                    <a href="{% url 'remove_bill_item' bill.id item.id %}"
+                                       class="btn btn-sm btn-outline-danger remove-btn"
+                                       title="Remove {{ item.product.name }}"
+                                       onclick="return confirm('Remove {{ item.product.name }} from bill?')">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -112,11 +121,14 @@
                     {% if bill.discount_amount > 0 %}
                     <div><span>Bill Discount</span><strong>-Rs. {{ bill.discount_amount }}</strong></div>
                     {% endif %}
-                    <div class="grand-total"><span>Total</span><strong>Rs. {{ bill.total_amount }}</strong></div>
+                    <div class="grand-total">
+                        <span>Total</span>
+                        <strong>Rs. {{ bill.total_amount|floatformat:"0" }}</strong>
+                    </div>
                 </div>
 
                 <a href="{% url 'bill_finalize' bill.id %}" class="btn btn-success btn-lg w-100 mt-3">
-                    <i class="bi bi-check-circle"></i> Finish & Print Bill
+                    <i class="bi bi-check-circle"></i> Finish &amp; Print Bill
                 </a>
                 {% else %}
                 <div class="empty-bill">
@@ -191,6 +203,11 @@
         font-size: 2.2rem;
         margin-bottom: 10px;
     }
+
+    .remove-btn {
+        padding: 2px 8px;
+        font-size: 0.85rem;
+    }
 </style>
 
 <script type="text/javascript">
@@ -254,6 +271,20 @@
 
         quantityInput.addEventListener('input', calculateTotal);
         discountInput.addEventListener('input', calculateTotal);
+
+        // ✅ Press Enter on quantity or discount field to submit
+        quantityInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('add-item-form').requestSubmit();
+            }
+        });
+        discountInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('add-item-form').requestSubmit();
+            }
+        });
 
         document.getElementById('add-item-form').addEventListener('submit', function (event) {
             var quantity = parseInt(quantityInput.value);

@@ -19,6 +19,8 @@ python -m PyInstaller --noconfirm --clean --onefile --windowed --name "BillingSo
   --collect-all django ^
   --collect-all reportlab ^
   --collect-all webview ^
+  --collect-all whitenoise ^
+  --collect-all dj_database_url ^
   --collect-submodules billing_app ^
   --collect-submodules gomu_crackers ^
   --hidden-import webview.platforms.edgechromium ^

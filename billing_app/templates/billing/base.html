@@ -243,6 +243,35 @@
             color: #dc3545;
             font-weight: 600;
         }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 15px;
+            }
+            .page-title {
+                font-size: 1.5rem;
+                margin-bottom: 15px;
+            }
+            .stat-card {
+                margin-bottom: 15px;
+            }
+            .navbar-brand {
+                font-size: 1rem;
+            }
+            .logo-container {
+                width: 40px;
+                height: 40px;
+            }
+            .brand-text .main-title {
+                font-size: 1rem;
+            }
+            .brand-text .sub-title {
+                font-size: 0.6rem;
+            }
+            .footer p {
+                font-size: 0.8rem !important;
+            }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -264,6 +293,28 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    <!-- Mobile Navigation Links -->
+                    <li class="nav-item d-md-none">
+                        <a href="{% url 'dashboard' %}" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
+                    </li>
+                    <li class="nav-item d-md-none">
+                        <a href="{% url 'product_list' %}" class="nav-link"><i class="bi bi-box"></i> Products</a>
+                    </li>
+                    <li class="nav-item d-md-none">
+                        <a href="{% url 'customer_list' %}" class="nav-link"><i class="bi bi-people"></i> Customers</a>
+                    </li>
+                    <li class="nav-item d-md-none">
+                        <a href="{% url 'stock_list' %}" class="nav-link"><i class="bi bi-graph-up"></i> Stock</a>
+                    </li>
+                    <li class="nav-item d-md-none">
+                        <a href="{% url 'bill_list' %}" class="nav-link"><i class="bi bi-file-earmark-text"></i> Bills</a>
+                    </li>
+                    <li class="nav-item d-md-none">
+                        <a href="{% url 'bill_create' %}" class="nav-link"><i class="bi bi-plus-circle"></i> New Bill</a>
+                    </li>
+                    <li class="nav-item d-md-none"><hr class="dropdown-divider"></li>
+                    <!-- End Mobile Links -->
+
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle"></i> {% if user.is_authenticated %}{{ user.username }}{% else %}Guest{% endif %}
@@ -282,7 +333,7 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <nav class="col-md-2 sidebar">
+            <nav class="col-md-2 d-none d-md-block sidebar">
                 <div class="d-flex flex-column">
                     <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                         <i class="bi bi-speedometer2"></i> Dashboard

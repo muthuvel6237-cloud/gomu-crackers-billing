@@ -31,6 +31,7 @@ def prepare_runtime_assets() -> None:
     static_root = Path(settings.STATIC_ROOT)
     if not static_root.exists() or not any(static_root.iterdir()):
         call_command("collectstatic", interactive=False, verbosity=0)
+    call_command("migrate", interactive=False, verbosity=0)
 
 
 def wait_for_server(url: str, timeout: int = 30) -> None:
