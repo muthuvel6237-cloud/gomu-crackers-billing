@@ -894,7 +894,7 @@ def generate_bill_pdf(request, pk):
         total_discount_amount += item_discount
 
     bill_discount = bill.discount_amount if bill.discount_percent > 0 else 0
-    grand_total = subtotal - total_discount_amount - bill_discount
+    grand_total = bill.total_amount
 
     totals = [['Goods Value', f"{subtotal:.2f}"]]
     
@@ -905,7 +905,7 @@ def generate_bill_pdf(request, pk):
         discount_label = f"Bill Discount ({bill.discount_percent:.0f}%)"
         totals.append([discount_label, f"-{bill_discount:.2f}"])
     
-    totals.append(['Grand Total', f"{grand_total:.2f}"])
+    totals.append(['Grand Total', f"{grand_total:.0f}"])
 
     total_table = Table(totals, colWidths=[1.5 * inch, 1.0 * inch])
 

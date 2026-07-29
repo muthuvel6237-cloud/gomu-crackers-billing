@@ -32,7 +32,7 @@
     <div class="col-md-3">
         <div class="stat-card">
             <i class="bi bi-currency-rupee" style="font-size: 2rem; color: #28a745;"></i>
-            <div class="stat-value">₹{{ today_revenue|floatformat:2 }}</div>
+            <div class="stat-value">₹{{ today_revenue|floatformat:"0" }}</div>
             <div class="stat-label">Today's Revenue</div>
         </div>
     </div>
@@ -65,7 +65,7 @@
                                     <td><strong>{{ bill.bill_number }}</strong></td>
                                     <td>{{ bill.customer.name|default:"Walk-in" }}</td>
                                     <td>{{ bill.bill_date|date:"d-m-Y H:i" }}</td>
-                                    <td><strong>₹{{ bill.total_amount|floatformat:2 }}</strong></td>
+                                    <td><strong>₹{{ bill.total_amount|floatformat:"0" }}</strong></td>
                                     <td>{{ bill.get_payment_method_display }}</td>
                                     <td>
                                         {% if bill.is_completed %}

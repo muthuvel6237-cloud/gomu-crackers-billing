@@ -116,7 +116,7 @@ class Bill(models.Model):
         """Calculate subtotal, discount, and total (without GST)"""
         self.subtotal = sum(item.item_total for item in self.billitem_set.all())
         self.discount_amount = (self.subtotal * self.discount_percent) / 100
-        self.total_amount = self.subtotal - self.discount_amount
+        self.total_amount = round(self.subtotal - self.discount_amount)
         self.change_amount = self.payment_received - self.total_amount
         self.save()
         return self.total_amount

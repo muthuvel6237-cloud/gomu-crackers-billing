@@ -42,7 +42,7 @@
                             <td>{{ bill.bill_date|date:"d-m-Y H:i" }}</td>
                             <td>₹{{ bill.subtotal|floatformat:2 }}</td>
                             <td>₹{{ bill.discount_amount|floatformat:2 }}</td>
-                            <td><strong>₹{{ bill.total_amount|floatformat:2 }}</strong></td>
+                            <td><strong>₹{{ bill.total_amount|floatformat:"0" }}</strong></td>
                             <td>{{ bill.get_payment_method_display }}</td>
                             <td>
                                 {% if bill.is_completed %}
