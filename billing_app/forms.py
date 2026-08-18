@@ -15,8 +15,9 @@ class CategoryForm(forms.ModelForm):
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ['name', 'category', 'unit', 'price', 'quantity', 'description']
+        fields = ['code', 'name', 'category', 'unit', 'price', 'quantity', 'description']
         widgets = {
+            'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Product code (optional)'}),
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Product name'}),
             'category': forms.Select(attrs={'class': 'form-control'}),
             'unit': forms.Select(attrs={'class': 'form-control'}),

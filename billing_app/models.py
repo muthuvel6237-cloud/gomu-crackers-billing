@@ -26,6 +26,7 @@ class Product(models.Model):
         ('case', 'Case'),
     ]
     
+    code = models.CharField(max_length=50, blank=True, null=True, unique=True, help_text='Product code/SKU')
     name = models.CharField(max_length=100)
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other')
     unit = models.CharField(max_length=20, choices=UNIT_CHOICES, default='piece', help_text='Unit of measurement')
@@ -39,6 +40,8 @@ class Product(models.Model):
         ordering = ['-created_at']
     
     def __str__(self):
+        if self.code:
+            return f"[{self.code}] {self.name} ({self.get_unit_display()}) - Stock: {self.quantity}"
         return f"{self.name} ({self.get_unit_display()}) - Stock: {self.quantity}"
     
     def is_low_stock(self):

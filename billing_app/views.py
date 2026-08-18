@@ -834,7 +834,7 @@ def generate_bill_pdf(request, pk):
     story.append(Spacer(1, 0.25 * inch))
 
     # ===== PRODUCT TABLE =====
-    data = [['S.No', 'Product', 'Unit', 'Qty', 'Rate', 'Amount']]
+    data = [['S.No', 'Code', 'Product', 'Unit', 'Qty', 'Rate', 'Amount']]
 
     items = bill.billitem_set.all()
 
@@ -848,6 +848,7 @@ def generate_bill_pdf(request, pk):
         # THEN APPEND WITH CORRECT AMOUNT
         data.append([
             str(i),
+            item.product.code if item.product.code else "-",
             item.product.name,
             item.unit,
             str(item.quantity),
@@ -856,11 +857,12 @@ def generate_bill_pdf(request, pk):
         ])
 
     product_table = Table(data, colWidths=[
-        0.6 * inch,
-        3.0 * inch,
+        0.5 * inch,
+        0.8 * inch,
+        2.5 * inch,
         0.7 * inch,
-        0.9 * inch,
-        0.9 * inch,
+        0.8 * inch,
+        0.8 * inch,
         1 * inch
     ])
 
