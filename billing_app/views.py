@@ -18,7 +18,9 @@ import urllib.request
 import zipfile
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
-from .models import Product, Customer, Bill, BillItem, Stock, Category
+import shutil
+import os
+from .models import Product, Customer, Bill, BillItem, Stock, Category, ShopSettings
 from .forms import ProductForm, ProductImportForm, CustomerForm, BillForm, BillItemForm, StockForm, CategoryForm
 
 
@@ -973,3 +975,76 @@ def remove_bill_item(request, bill_pk, item_pk):
     bill.calculate_total()
     messages.success(request, f'"{product_name}" removed from bill.')
     return redirect('bill_items', pk=bill_pk)
+
+
+# ========== SETTINGS ==========
+def settings_view(request):
+    shop = ShopSettings.get_settings()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'save_settings':
+            shop.shop_name   = request.POST.get('shop_name', shop.shop_name)
+            shop.tagline     = request.POST.get('tagline', shop.tagline)
+            shop.owner_name  = request.POST.get('owner_name', shop.owner_name)
+            shop.phone       = request.POST.get('phone', shop.phone)
+            shop.email       = request.POST.get('email', shop.email)
+            shop.address     = request.POST.get('address', shop.address)
+            shop.city        = request.POST.get('city', shop.city)
+            shop.gst_number  = request.POST.get('gst_number', shop.gst_number)
+            shop.footer_note = request.POST.get('footer_note', shop.footer_note)
+            shop.save()
+            messages.success(request, 'Shop settings saved successfully!')
+            return redirect('settings')
+
+    stats = {
+        'products':  Product.objects.count(),
+        'customers': Customer.objects.count(),
+        'bills':     Bill.objects.count(),
+        'completed': Bill.objects.filter(is_completed=True).count(),
+        'pending':   Bill.objects.filter(is_completed=False).count(),
+    }
+    return render(request, 'billing/settings.html', {'settings': shop, 'stats': stats})
+
+
+def backup_db(request):
+    """Download the SQLite database as a backup file."""
+    db_path = settings.DATABASES['default']['NAME']
+    if not os.path.exists(db_path):
+        messages.error(request, 'Database file not found.')
+        return redirect('settings')
+
+    from django.utils.timezone import now
+    timestamp = now().strftime('%Y%m%d_%H%M%S')
+    filename = f'crackers_backup_{timestamp}.sqlite3'
+
+    with open(db_path, 'rb') as f:
+        response = HttpResponse(f.read(), content_type='application/octet-stream')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+def restore_db(request):
+    """Restore database from an uploaded backup file."""
+    if request.method == 'POST' and request.FILES.get('db_file'):
+        db_path = settings.DATABASES['default']['NAME']
+        uploaded = request.FILES['db_file']
+
+        # Save a safety backup first
+        backup_path = db_path + '.before_restore'
+        if os.path.exists(db_path):
+            shutil.copy2(db_path, backup_path)
+
+        try:
+            with open(db_path, 'wb') as f:
+                for chunk in uploaded.chunks():
+                    f.write(chunk)
+            messages.success(request, 'Database restored successfully! Please refresh the page.')
+        except Exception as e:
+            # Rollback if something went wrong
+            if os.path.exists(backup_path):
+                shutil.copy2(backup_path, db_path)
+            messages.error(request, f'Restore failed: {str(e)}')
+    else:
+        messages.error(request, 'No file uploaded.')
+    return redirect('settings')

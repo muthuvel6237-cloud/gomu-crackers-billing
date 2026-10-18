@@ -1,0 +1,126 @@
+{% extends 'billing/base.html' %}
+
+{% block title %}Settings - Crackers Billing{% endblock %}
+
+{% block content %}
+<div class="page-title">
+    <i class="bi bi-gear-fill"></i> Settings
+</div>
+
+<div class="row g-4">
+
+    <!-- Shop Settings -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="bi bi-shop"></i> Shop Information</h5>
+                <small class="text-muted">This info appears on all PDF bills</small>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{% url 'settings' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_settings">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Shop Name *</label>
+                            <input type="text" name="shop_name" class="form-control" value="{{ settings.shop_name }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tagline</label>
+                            <input type="text" name="tagline" class="form-control" value="{{ settings.tagline }}" placeholder="e.g. Professional Billing System">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Owner Name</label>
+                            <input type="text" name="owner_name" class="form-control" value="{{ settings.owner_name }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Phone Number</label>
+                            <input type="text" name="phone" class="form-control" value="{{ settings.phone }}" placeholder="e.g. +91 98765 43210">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ settings.email }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">City</label>
+                            <input type="text" name="city" class="form-control" value="{{ settings.city }}" placeholder="e.g. Sivakasi">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Address</label>
+                            <textarea name="address" class="form-control" rows="2" placeholder="Full shop address">{{ settings.address }}</textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">GST Number</label>
+                            <input type="text" name="gst_number" class="form-control" value="{{ settings.gst_number }}" placeholder="e.g. 33ABCDE1234F1Z5">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Bill Footer Note</label>
+                            <input type="text" name="footer_note" class="form-control" value="{{ settings.footer_note }}" placeholder="e.g. Thank you for your business!">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-save"></i> Save Shop Settings
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Sidebar -->
+    <div class="col-lg-4">
+
+        <!-- Backup -->
+        <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-cloud-download"></i> Data Backup</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Download a full backup of your database. Keep this file safe — it has all your bills, products, and customers.</p>
+                <a href="{% url 'backup_db' %}" class="btn btn-success w-100">
+                    <i class="bi bi-download"></i> Download Backup
+                </a>
+            </div>
+        </div>
+
+        <!-- Restore -->
+        <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-cloud-upload"></i> Data Restore</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">⚠️ This will <strong>replace all current data</strong> with the backup file. Use only a valid backup file.</p>
+                <form method="POST" action="{% url 'restore_db' %}" enctype="multipart/form-data"
+                      onsubmit="return confirm('WARNING: This will replace ALL current data with the backup. Are you sure?')">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                        <input type="file" name="db_file" class="form-control form-control-sm" accept=".sqlite3,.db" required>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="bi bi-upload"></i> Restore from Backup
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- System Info -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> System Info</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless">
+                    <tr><td class="text-muted">Total Products</td><td><strong>{{ stats.products }}</strong></td></tr>
+                    <tr><td class="text-muted">Total Customers</td><td><strong>{{ stats.customers }}</strong></td></tr>
+                    <tr><td class="text-muted">Total Bills</td><td><strong>{{ stats.bills }}</strong></td></tr>
+                    <tr><td class="text-muted">Completed Bills</td><td><strong>{{ stats.completed }}</strong></td></tr>
+                    <tr><td class="text-muted">Pending Bills</td><td><strong>{{ stats.pending }}</strong></td></tr>
+                    <tr><td class="text-muted">Software Version</td><td><strong>v2.0</strong></td></tr>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

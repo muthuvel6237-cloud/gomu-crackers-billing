@@ -361,6 +361,13 @@
                     <a href="{% url 'bill_create' %}" class="nav-link">
                         <i class="bi bi-plus-circle"></i> New Bill
                     </a>
+
+                    <hr class="my-2">
+
+                    <div class="fw-bold text-muted px-3 mt-2 mb-2">System</div>
+                    <a href="{% url 'settings' %}" class="nav-link {% if 'settings' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="bi bi-gear-fill"></i> Settings
+                    </a>
                 </div>
             </nav>
 

@@ -2,6 +2,29 @@ from django.db import models, transaction
 from django.utils import timezone
 from datetime import datetime
 
+class ShopSettings(models.Model):
+    shop_name = models.CharField(max_length=200, default='Crackers Shop')
+    tagline = models.CharField(max_length=200, blank=True, default='Professional Billing System')
+    owner_name = models.CharField(max_length=100, blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True, default='billing@crackersshop.com')
+    address = models.TextField(blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    gst_number = models.CharField(max_length=50, blank=True)
+    footer_note = models.CharField(max_length=300, blank=True, default='Thank you for your business!')
+
+    class Meta:
+        verbose_name = 'Shop Settings'
+
+    def __str__(self):
+        return self.shop_name
+
+    @classmethod
+    def get_settings(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
 class Category(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)

@@ -38,4 +38,9 @@ urlpatterns = [
     path('bills/<int:bill_pk>/items/<int:item_pk>/remove/', views.remove_bill_item, name='remove_bill_item'),
     path('bills/<int:pk>/reopen/', views.bill_reopen, name='bill_reopen'),
     path('get-product-price/<int:product_id>/', views.get_product_price, name='get_product_price'),
+
+    # Settings
+    path('settings/', views.settings_view, name='settings'),
+    path('settings/backup/', views.backup_db, name='backup_db'),
+    path('settings/restore/', views.restore_db, name='restore_db'),
 ]
