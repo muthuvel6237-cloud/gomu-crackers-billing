@@ -672,6 +672,14 @@ def bill_finalize(request, pk):
     messages.success(request, 'Bill completed!')
     return redirect('bill_detail', pk=pk)
 
+def bill_reopen(request, pk):
+    bill = get_object_or_404(Bill, pk=pk)
+    bill.is_completed = False
+    bill.save()
+    messages.success(request, f'Bill #{bill.bill_number} reopened for editing.')
+    return redirect('bill_items', pk=pk)
+
+
 def bill_detail(request, pk):
     bill = get_object_or_404(Bill, pk=pk)
     bill.calculate_total()
