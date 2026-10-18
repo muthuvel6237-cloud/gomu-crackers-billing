@@ -59,10 +59,7 @@
                                     <i class="bi bi-file-pdf"></i> PDF
                                 </a>
                                 {% if bill.is_completed %}
-                                    <a href="{% url 'bill_reopen' bill.id %}"
-                                       class="btn btn-sm btn-warning"
-                                       title="Edit this bill"
-                                       onclick="return confirm('Reopen Bill #{{ bill.bill_number }} for editing?')">
+                                    <a href="{% url 'bill_reopen' bill.id %}" class="btn btn-sm btn-warning" title="Edit this bill">
                                         <i class="bi bi-pencil-square"></i> Edit
                                     </a>
                                 {% else %}
