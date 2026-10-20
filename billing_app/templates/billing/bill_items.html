@@ -358,46 +358,58 @@
         updateSelectedProductDetails();
     });
 
-    // ===== INLINE EDIT: auto-submit only when value changes and is valid =====
+    // ===== INLINE EDIT: robust numeric comparison =====
     document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.inline-edit-input').forEach(function(input) {
-            var originalValue = input.value;
+        var origValues = {};
 
-            // Store original value on focus
+        document.querySelectorAll('.inline-edit-input').forEach(function(input) {
+            var key = input.dataset.itemId + '_' + input.name;
+            // Store initial value numerically
+            origValues[key] = parseFloat(input.value) || 0;
+
+            // Refresh original on focus
             input.addEventListener('focus', function() {
-                originalValue = input.value;
+                origValues[key] = parseFloat(input.value) || 0;
             });
 
             function trySubmit() {
-                var val = input.value.trim();
-                var num = parseFloat(val);
-                // Only submit if valid number and value actually changed
-                if (val === '' || isNaN(num) || num < 0) {
-                    input.value = originalValue; // revert to original
+                var rawVal = input.value.trim();
+                var isQty  = input.name === 'quantity';
+                var num    = isQty ? parseInt(rawVal, 10) : parseFloat(rawVal);
+
+                // Validate
+                if (rawVal === '' || isNaN(num)) {
+                    input.value = origValues[key] !== undefined ? origValues[key] : (isQty ? 1 : 0);
                     return;
                 }
-                if (val !== originalValue) {
+                if (isQty && num < 1) {         // qty must be >= 1
+                    input.value = origValues[key] || 1;
+                    return;
+                }
+                if (!isQty && num < 0) {         // discount can be 0, just not negative
+                    input.value = origValues[key] || 0;
+                    return;
+                }
+
+                // Submit only if value actually changed (numeric compare)
+                if (num !== origValues[key]) {
                     input.closest('form').submit();
                 }
             }
 
-            // Submit on Enter key
             input.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     trySubmit();
                 }
-                // Escape = revert without saving
                 if (e.key === 'Escape') {
-                    input.value = originalValue;
+                    input.value = origValues[key] !== undefined ? origValues[key] : input.defaultValue;
                     input.blur();
                 }
             });
 
-            // Submit on blur only if value changed and valid
-            input.addEventListener('blur', function() {
-                trySubmit();
-            });
+            // Save on click away
+            input.addEventListener('blur', trySubmit);
         });
     });
 </script>
