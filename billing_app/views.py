@@ -1053,21 +1053,53 @@ def restore_db(request):
 def update_bill_item(request, bill_pk, item_pk):
     bill = get_object_or_404(Bill, pk=bill_pk)
     item = get_object_or_404(BillItem, pk=item_pk, bill=bill)
+
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
     if request.method == 'POST':
         try:
-            new_qty = int(request.POST.get('quantity', item.quantity))
-            new_disc = float(request.POST.get('item_discount', item.item_discount or 0))
-            if new_qty <= 0:
-                messages.error(request, 'Quantity must be greater than 0.')
-            else:
-                item.quantity = new_qty
-                item.item_discount = new_disc
-                item.save()          # BillItem.save() restores old stock, then deducts new qty
-                bill.calculate_total()
-                messages.success(request, f'{item.product.name} qty updated to {new_qty}.')
+            # Robust qty parsing — handle int, float-string, empty
+            qty_raw = (request.POST.get('quantity') or '').strip()
+            if not qty_raw:
+                raise ValueError('Quantity is required.')
+            new_qty = int(float(qty_raw))   # int(float()) handles "6", "6.0" etc.
+            if new_qty < 1:
+                raise ValueError('Quantity must be at least 1.')
+
+            # Robust discount parsing — 0 if empty/missing
+            disc_raw = (request.POST.get('item_discount') or '0').strip()
+            try:
+                new_disc = float(disc_raw)
+            except (ValueError, TypeError):
+                new_disc = float(item.item_discount or 0)
+
+            item.quantity = new_qty
+            item.item_discount = new_disc
+            item.save()          # restores old stock, deducts new qty, raises ValueError if insufficient
+            bill.calculate_total()
+
+            if is_ajax:
+                return JsonResponse({
+                    'ok': True,
+                    'new_qty': new_qty,
+                    'item_total': str(item.item_total),
+                    'bill_subtotal': str(bill.subtotal),
+                    'bill_total': str(bill.total_amount),
+                })
+            messages.success(request, f'{item.product.name} qty updated to {new_qty}.')
+
         except ValueError as e:
-            # Catches "Insufficient stock!" from BillItem.save() and other ValueErrors
-            messages.error(request, str(e) if str(e) else 'Invalid quantity value.')
-        except TypeError:
-            messages.error(request, 'Invalid quantity value.')
+            err_msg = str(e) or 'Invalid quantity.'
+            if is_ajax:
+                return JsonResponse({'ok': False, 'error': err_msg}, status=400)
+            messages.error(request, err_msg)
+
+        except Exception as e:
+            err_msg = f'{type(e).__name__}: {e}'
+            if is_ajax:
+                return JsonResponse({'ok': False, 'error': err_msg}, status=500)
+            messages.error(request, err_msg)
+
+    if is_ajax:
+        return JsonResponse({'ok': False, 'error': 'Bad request'}, status=400)
     return redirect('bill_items', pk=bill_pk)

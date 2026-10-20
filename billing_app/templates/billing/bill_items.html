@@ -100,21 +100,20 @@
                                 <td>{{ item.product.code|default:"-" }}</td>
                                 <td><strong>{{ item.product.name }}</strong></td>
 
-                                <!-- Qty input — saves on Enter or click away -->
+                                <!-- Qty input — saves via AJAX on Enter or blur -->
                                 <td class="text-center">
-                                    <form method="POST" action="{% url 'update_bill_item' bill.id item.id %}" class="qty-form">
-                                        {% csrf_token %}
-                                        <input type="number" name="quantity"
-                                               value="{{ item.quantity }}" min="1"
-                                               data-orig="{{ item.quantity }}"
-                                               class="form-control form-control-sm text-center qty-input"
-                                               style="width:70px;display:inline-block;">
-                                        <input type="hidden" name="item_discount" value="{{ item.item_discount }}">
-                                    </form>
+                                    <input type="number"
+                                           value="{{ item.quantity }}" min="1"
+                                           data-orig="{{ item.quantity }}"
+                                           data-url="{% url 'update_bill_item' bill.id item.id %}"
+                                           data-discount="{{ item.item_discount }}"
+                                           data-csrf="{{ csrf_token }}"
+                                           class="form-control form-control-sm text-center qty-input"
+                                           style="width:70px;display:inline-block;">
                                 </td>
 
                                 <td class="text-end">Rs. {{ item.unit_price }}</td>
-                                <td class="text-end fw-bold">Rs. {{ item.item_total }}</td>
+                                <td class="text-end fw-bold item-total-cell">Rs. {{ item.item_total|floatformat:"0" }}</td>
                                 <td class="text-center">
                                     <a href="{% url 'remove_bill_item' bill.id item.id %}"
                                        class="btn btn-sm btn-outline-danger"
@@ -130,13 +129,13 @@
                 </div>
 
                 <div class="bill-total-box">
-                    <div><span>Subtotal</span><strong>Rs. {{ bill.subtotal }}</strong></div>
+                    <div><span>Subtotal</span><strong id="bill-subtotal-val">Rs. {{ bill.subtotal|floatformat:"0" }}</strong></div>
                     {% if bill.discount_amount > 0 %}
                     <div><span>Bill Discount</span><strong>-Rs. {{ bill.discount_amount }}</strong></div>
                     {% endif %}
                     <div class="grand-total">
                         <span>Total</span>
-                        <strong>Rs. {{ bill.total_amount|floatformat:"0" }}</strong>
+                        <strong id="bill-total-val">Rs. {{ bill.total_amount|floatformat:"0" }}</strong>
                     </div>
                 </div>
 
@@ -343,30 +342,86 @@
         updateSelectedProductDetails();
     });
 
-    // ===== QTY INLINE EDIT — reliable with double-submit guard =====
+    // ===== QTY INLINE EDIT — AJAX, no page reload, no double-submit =====
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.qty-input').forEach(function(input) {
-            var submitting = false;
+            var saving = false;
 
             function saveQty() {
-                if (submitting) return;   // prevent double-submit from blur firing after Enter
+                if (saving) return;
+
                 var newVal = parseInt(input.value, 10);
                 var origVal = parseInt(input.getAttribute('data-orig'), 10);
+
+                // Revert bad values
                 if (isNaN(newVal) || newVal < 1) {
-                    input.value = origVal;   // revert if invalid
+                    input.value = origVal;
                     return;
                 }
-                if (newVal !== origVal) {
-                    submitting = true;
-                    input.setAttribute('data-orig', newVal);  // update immediately to prevent re-trigger
-                    input.closest('form').submit();
-                }
+                // Nothing changed — skip
+                if (newVal === origVal) return;
+
+                saving = true;
+                input.style.opacity = '0.4';
+                input.disabled = true;
+
+                var url      = input.getAttribute('data-url');
+                var csrf     = input.getAttribute('data-csrf');
+                var discount = input.getAttribute('data-discount') || '0';
+
+                var body = 'csrfmiddlewaretoken=' + encodeURIComponent(csrf)
+                         + '&quantity=' + newVal
+                         + '&item_discount=' + encodeURIComponent(discount);
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: body
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    input.style.opacity = '1';
+                    input.disabled = false;
+                    saving = false;
+
+                    if (data.ok) {
+                        // Update data-orig so next blur doesn't re-save
+                        input.setAttribute('data-orig', newVal);
+
+                        // Update this row's total
+                        var row = input.closest('tr');
+                        if (row) {
+                            var totalCell = row.querySelector('.item-total-cell');
+                            if (totalCell) totalCell.textContent = 'Rs. ' + Math.round(parseFloat(data.item_total));
+                        }
+
+                        // Update bill subtotal & total
+                        var subEl = document.getElementById('bill-subtotal-val');
+                        var totEl = document.getElementById('bill-total-val');
+                        if (subEl) subEl.textContent = 'Rs. ' + Math.round(parseFloat(data.bill_subtotal));
+                        if (totEl) totEl.textContent = 'Rs. ' + Math.round(parseFloat(data.bill_total));
+                    } else {
+                        // Revert and show error
+                        input.value = origVal;
+                        alert(data.error || 'Could not update quantity.');
+                    }
+                })
+                .catch(function() {
+                    input.style.opacity = '1';
+                    input.disabled = false;
+                    saving = false;
+                    input.value = origVal;
+                    alert('Network error. Please try again.');
+                });
             }
 
             input.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    saveQty();
+                    input.blur();   // blur triggers saveQty
                 }
                 if (e.key === 'Escape') {
                     input.value = input.getAttribute('data-orig');
