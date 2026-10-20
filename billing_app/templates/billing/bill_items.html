@@ -358,19 +358,45 @@
         updateSelectedProductDetails();
     });
 
-    // ===== INLINE EDIT: auto-submit on blur or Enter =====
+    // ===== INLINE EDIT: auto-submit only when value changes and is valid =====
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.inline-edit-input').forEach(function(input) {
+            var originalValue = input.value;
+
+            // Store original value on focus
+            input.addEventListener('focus', function() {
+                originalValue = input.value;
+            });
+
+            function trySubmit() {
+                var val = input.value.trim();
+                var num = parseFloat(val);
+                // Only submit if valid number and value actually changed
+                if (val === '' || isNaN(num) || num < 0) {
+                    input.value = originalValue; // revert to original
+                    return;
+                }
+                if (val !== originalValue) {
+                    input.closest('form').submit();
+                }
+            }
+
             // Submit on Enter key
             input.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    input.closest('form').submit();
+                    trySubmit();
+                }
+                // Escape = revert without saving
+                if (e.key === 'Escape') {
+                    input.value = originalValue;
+                    input.blur();
                 }
             });
-            // Submit on blur (click away)
+
+            // Submit on blur only if value changed and valid
             input.addEventListener('blur', function() {
-                input.closest('form').submit();
+                trySubmit();
             });
         });
     });
