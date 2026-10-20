@@ -92,19 +92,51 @@
                                 <th class="text-end">Rate</th>
                                 <th class="text-end">Disc.</th>
                                 <th class="text-end">Total</th>
-                                <th class="text-center">Remove</th>
+                                <th class="text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for item in items %}
-                            <tr>
+                            <tr id="item-row-{{ item.id }}">
                                 <td>{{ item.product.code|default:"-" }}</td>
                                 <td><strong>{{ item.product.name }}</strong></td>
-                                <td class="text-end">{{ item.quantity }}</td>
+
+                                <!-- Inline editable Qty -->
+                                <td class="text-end">
+                                    <span class="item-display" id="qty-display-{{ item.id }}">{{ item.quantity }}</span>
+                                    <input type="number" class="form-control form-control-sm item-input d-none"
+                                           id="qty-input-{{ item.id }}" value="{{ item.quantity }}" min="1" style="width:70px;display:inline-block;">
+                                </td>
+
+                                <!-- Inline editable Discount -->
                                 <td class="text-end">Rs. {{ item.unit_price }}</td>
-                                <td class="text-end">{{ item.item_discount }}%</td>
-                                <td class="text-end fw-bold">Rs. {{ item.item_total }}</td>
+                                <td class="text-end">
+                                    <span class="item-display" id="disc-display-{{ item.id }}">{{ item.item_discount }}%</span>
+                                    <input type="number" class="form-control form-control-sm item-input d-none"
+                                           id="disc-input-{{ item.id }}" value="{{ item.item_discount }}" min="0" max="100" step="0.01" style="width:70px;display:inline-block;">
+                                </td>
+
+                                <td class="text-end fw-bold" id="total-{{ item.id }}">Rs. {{ item.item_total }}</td>
                                 <td class="text-center">
+                                    <!-- Edit / Save / Cancel buttons -->
+                                    <button class="btn btn-sm btn-outline-warning edit-btn"
+                                            onclick="startEdit({{ item.id }})" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form method="POST" action="{% url 'update_bill_item' bill.id item.id %}"
+                                          id="edit-form-{{ item.id }}" class="d-none d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="quantity" id="form-qty-{{ item.id }}">
+                                        <input type="hidden" name="item_discount" id="form-disc-{{ item.id }}">
+                                        <button type="submit" class="btn btn-sm btn-success save-btn d-none" id="save-btn-{{ item.id }}" title="Save">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                    </form>
+                                    <button class="btn btn-sm btn-secondary cancel-btn d-none"
+                                            id="cancel-btn-{{ item.id }}"
+                                            onclick="cancelEdit({{ item.id }}, '{{ item.quantity }}', '{{ item.item_discount }}')" title="Cancel">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
                                     <a href="{% url 'remove_bill_item' bill.id item.id %}"
                                        class="btn btn-sm btn-outline-danger remove-btn"
                                        title="Remove {{ item.product.name }}"
@@ -274,13 +306,25 @@
         quantityInput.addEventListener('input', calculateTotal);
         discountInput.addEventListener('input', calculateTotal);
 
-        // ✅ Press Enter on quantity or discount field to submit
+        // ✅ Press Enter on Product → jump to Quantity field
+        productSelect.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                quantityInput.focus();
+                quantityInput.select();
+            }
+        });
+
+        // ✅ Press Enter on quantity → jump to Discount
         quantityInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                document.getElementById('add-item-form').requestSubmit();
+                discountInput.focus();
+                discountInput.select();
             }
         });
+
+        // ✅ Press Enter on discount → submit form
         discountInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -301,6 +345,45 @@
 
         updateSelectedProductDetails();
     });
+
+    // ===== INLINE EDIT FUNCTIONS =====
+    function startEdit(itemId) {
+        // Show inputs, hide displays
+        document.getElementById('qty-display-' + itemId).classList.add('d-none');
+        document.getElementById('disc-display-' + itemId).classList.add('d-none');
+        document.getElementById('qty-input-' + itemId).classList.remove('d-none');
+        document.getElementById('disc-input-' + itemId).classList.remove('d-none');
+        // Show save/cancel, hide edit/delete buttons
+        document.getElementById('save-btn-' + itemId).classList.remove('d-none');
+        document.getElementById('cancel-btn-' + itemId).classList.remove('d-none');
+        document.querySelectorAll('#item-row-' + itemId + ' .edit-btn').forEach(b => b.classList.add('d-none'));
+        document.querySelectorAll('#item-row-' + itemId + ' .remove-btn').forEach(b => b.classList.add('d-none'));
+        document.getElementById('qty-input-' + itemId).focus();
+    }
+
+    function cancelEdit(itemId, origQty, origDisc) {
+        document.getElementById('qty-input-' + itemId).value = origQty;
+        document.getElementById('disc-input-' + itemId).value = origDisc;
+        document.getElementById('qty-display-' + itemId).classList.remove('d-none');
+        document.getElementById('disc-display-' + itemId).classList.remove('d-none');
+        document.getElementById('qty-input-' + itemId).classList.add('d-none');
+        document.getElementById('disc-input-' + itemId).classList.add('d-none');
+        document.getElementById('save-btn-' + itemId).classList.add('d-none');
+        document.getElementById('cancel-btn-' + itemId).classList.add('d-none');
+        document.querySelectorAll('#item-row-' + itemId + ' .edit-btn').forEach(b => b.classList.remove('d-none'));
+        document.querySelectorAll('#item-row-' + itemId + ' .remove-btn').forEach(b => b.classList.remove('d-none'));
+    }
+
+    // Copy input values into hidden form fields before submit
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('[id^="edit-form-"]').forEach(function(form) {
+            form.addEventListener('submit', function() {
+                var itemId = form.id.replace('edit-form-', '');
+                document.getElementById('form-qty-' + itemId).value = document.getElementById('qty-input-' + itemId).value;
+                document.getElementById('form-disc-' + itemId).value = document.getElementById('disc-input-' + itemId).value;
+            });
+        });
+    });
 </script>
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
@@ -314,6 +397,11 @@ document.addEventListener('DOMContentLoaded', function () {
             width: '100%'
         }).on('select2:select change', function () {
             updateSelectedProductDetails();
+            // After selecting, move focus to quantity
+            setTimeout(function() {
+                document.getElementById('quantity_input').focus();
+                document.getElementById('quantity_input').select();
+            }, 100);
         });
     }
 });

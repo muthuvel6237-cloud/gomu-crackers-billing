@@ -1048,3 +1048,23 @@ def restore_db(request):
     else:
         messages.error(request, 'No file uploaded.')
     return redirect('settings')
+
+
+def update_bill_item(request, bill_pk, item_pk):
+    bill = get_object_or_404(Bill, pk=bill_pk)
+    item = get_object_or_404(BillItem, pk=item_pk, bill=bill)
+    if request.method == 'POST':
+        try:
+            new_qty = int(request.POST.get('quantity', item.quantity))
+            new_disc = float(request.POST.get('item_discount', item.item_discount or 0))
+            if new_qty <= 0:
+                messages.error(request, 'Quantity must be greater than 0.')
+            else:
+                item.quantity = new_qty
+                item.item_discount = new_disc
+                item.save()
+                bill.calculate_total()
+                messages.success(request, f'{item.product.name} updated.')
+        except (ValueError, TypeError):
+            messages.error(request, 'Invalid quantity or discount value.')
+    return redirect('bill_items', pk=bill_pk)
