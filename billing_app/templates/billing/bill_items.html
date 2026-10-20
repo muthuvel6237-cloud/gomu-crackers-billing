@@ -88,57 +88,51 @@
                             <tr>
                                 <th>Code</th>
                                 <th>Product</th>
-                                <th class="text-end">Qty</th>
+                                <th class="text-center">Qty</th>
                                 <th class="text-end">Rate</th>
-                                <th class="text-end">Disc.</th>
+                                <th class="text-center">Disc.%</th>
                                 <th class="text-end">Total</th>
-                                <th class="text-center">Actions</th>
+                                <th class="text-center">Remove</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for item in items %}
-                            <tr id="item-row-{{ item.id }}">
+                            <tr>
                                 <td>{{ item.product.code|default:"-" }}</td>
                                 <td><strong>{{ item.product.name }}</strong></td>
 
-                                <!-- Inline editable Qty -->
-                                <td class="text-end">
-                                    <span class="item-display" id="qty-display-{{ item.id }}">{{ item.quantity }}</span>
-                                    <input type="number" class="form-control form-control-sm item-input d-none"
-                                           id="qty-input-{{ item.id }}" value="{{ item.quantity }}" min="1" style="width:70px;display:inline-block;">
-                                </td>
-
-                                <!-- Inline editable Discount -->
-                                <td class="text-end">Rs. {{ item.unit_price }}</td>
-                                <td class="text-end">
-                                    <span class="item-display" id="disc-display-{{ item.id }}">{{ item.item_discount }}%</span>
-                                    <input type="number" class="form-control form-control-sm item-input d-none"
-                                           id="disc-input-{{ item.id }}" value="{{ item.item_discount }}" min="0" max="100" step="0.01" style="width:70px;display:inline-block;">
-                                </td>
-
-                                <td class="text-end fw-bold" id="total-{{ item.id }}">Rs. {{ item.item_total }}</td>
+                                <!-- Always-visible Qty input -->
                                 <td class="text-center">
-                                    <!-- Edit / Save / Cancel buttons -->
-                                    <button class="btn btn-sm btn-outline-warning edit-btn"
-                                            onclick="startEdit({{ item.id }})" title="Edit">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <form method="POST" action="{% url 'update_bill_item' bill.id item.id %}"
-                                          id="edit-form-{{ item.id }}" class="d-none d-inline">
+                                    <form method="POST" action="{% url 'update_bill_item' bill.id item.id %}" class="d-inline update-form">
                                         {% csrf_token %}
-                                        <input type="hidden" name="quantity" id="form-qty-{{ item.id }}">
-                                        <input type="hidden" name="item_discount" id="form-disc-{{ item.id }}">
-                                        <button type="submit" class="btn btn-sm btn-success save-btn d-none" id="save-btn-{{ item.id }}" title="Save">
-                                            <i class="bi bi-check-lg"></i>
-                                        </button>
+                                        <input type="number" name="quantity" value="{{ item.quantity }}" min="1"
+                                               class="form-control form-control-sm text-center inline-edit-input"
+                                               data-item-id="{{ item.id }}"
+                                               data-field="qty"
+                                               style="width:65px;display:inline-block;">
+                                        <input type="hidden" name="item_discount" value="{{ item.item_discount }}">
                                     </form>
-                                    <button class="btn btn-sm btn-secondary cancel-btn d-none"
-                                            id="cancel-btn-{{ item.id }}"
-                                            onclick="cancelEdit({{ item.id }}, '{{ item.quantity }}', '{{ item.item_discount }}')" title="Cancel">
-                                        <i class="bi bi-x-lg"></i>
-                                    </button>
+                                </td>
+
+                                <td class="text-end">Rs. {{ item.unit_price }}</td>
+
+                                <!-- Always-visible Discount input -->
+                                <td class="text-center">
+                                    <form method="POST" action="{% url 'update_bill_item' bill.id item.id %}" class="d-inline update-form">
+                                        {% csrf_token %}
+                                        <input type="number" name="item_discount" value="{{ item.item_discount }}" min="0" max="100" step="0.1"
+                                               class="form-control form-control-sm text-center inline-edit-input"
+                                               data-item-id="{{ item.id }}"
+                                               data-field="disc"
+                                               style="width:65px;display:inline-block;">
+                                        <input type="hidden" name="quantity" value="{{ item.quantity }}">
+                                    </form>
+                                </td>
+
+                                <td class="text-end fw-bold">Rs. {{ item.item_total }}</td>
+                                <td class="text-center">
                                     <a href="{% url 'remove_bill_item' bill.id item.id %}"
-                                       class="btn btn-sm btn-outline-danger remove-btn"
+                                       class="btn btn-sm btn-outline-danger"
                                        title="Remove {{ item.product.name }}"
                                        onclick="return confirm('Remove {{ item.product.name }} from bill?')">
                                         <i class="bi bi-trash"></i>
@@ -241,6 +235,24 @@
     .remove-btn {
         padding: 2px 8px;
         font-size: 0.85rem;
+    }
+
+    /* Always-visible inline edit inputs in bill summary */
+    .inline-edit-input {
+        width: 65px !important;
+        display: inline-block !important;
+        text-align: center;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 2px 4px;
+        font-size: 0.85rem;
+        background: #fff;
+        transition: border-color 0.2s;
+    }
+    .inline-edit-input:focus {
+        border-color: #FFD700;
+        box-shadow: 0 0 0 2px rgba(255,215,0,0.25);
+        outline: none;
     }
 </style>
 
@@ -346,41 +358,19 @@
         updateSelectedProductDetails();
     });
 
-    // ===== INLINE EDIT FUNCTIONS =====
-    function startEdit(itemId) {
-        // Show inputs, hide displays
-        document.getElementById('qty-display-' + itemId).classList.add('d-none');
-        document.getElementById('disc-display-' + itemId).classList.add('d-none');
-        document.getElementById('qty-input-' + itemId).classList.remove('d-none');
-        document.getElementById('disc-input-' + itemId).classList.remove('d-none');
-        // Show save/cancel, hide edit/delete buttons
-        document.getElementById('save-btn-' + itemId).classList.remove('d-none');
-        document.getElementById('cancel-btn-' + itemId).classList.remove('d-none');
-        document.querySelectorAll('#item-row-' + itemId + ' .edit-btn').forEach(b => b.classList.add('d-none'));
-        document.querySelectorAll('#item-row-' + itemId + ' .remove-btn').forEach(b => b.classList.add('d-none'));
-        document.getElementById('qty-input-' + itemId).focus();
-    }
-
-    function cancelEdit(itemId, origQty, origDisc) {
-        document.getElementById('qty-input-' + itemId).value = origQty;
-        document.getElementById('disc-input-' + itemId).value = origDisc;
-        document.getElementById('qty-display-' + itemId).classList.remove('d-none');
-        document.getElementById('disc-display-' + itemId).classList.remove('d-none');
-        document.getElementById('qty-input-' + itemId).classList.add('d-none');
-        document.getElementById('disc-input-' + itemId).classList.add('d-none');
-        document.getElementById('save-btn-' + itemId).classList.add('d-none');
-        document.getElementById('cancel-btn-' + itemId).classList.add('d-none');
-        document.querySelectorAll('#item-row-' + itemId + ' .edit-btn').forEach(b => b.classList.remove('d-none'));
-        document.querySelectorAll('#item-row-' + itemId + ' .remove-btn').forEach(b => b.classList.remove('d-none'));
-    }
-
-    // Copy input values into hidden form fields before submit
+    // ===== INLINE EDIT: auto-submit on blur or Enter =====
     document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('[id^="edit-form-"]').forEach(function(form) {
-            form.addEventListener('submit', function() {
-                var itemId = form.id.replace('edit-form-', '');
-                document.getElementById('form-qty-' + itemId).value = document.getElementById('qty-input-' + itemId).value;
-                document.getElementById('form-disc-' + itemId).value = document.getElementById('disc-input-' + itemId).value;
+        document.querySelectorAll('.inline-edit-input').forEach(function(input) {
+            // Submit on Enter key
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    input.closest('form').submit();
+                }
+            });
+            // Submit on blur (click away)
+            input.addEventListener('blur', function() {
+                input.closest('form').submit();
             });
         });
     });
