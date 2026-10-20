@@ -1062,9 +1062,12 @@ def update_bill_item(request, bill_pk, item_pk):
             else:
                 item.quantity = new_qty
                 item.item_discount = new_disc
-                item.save()
+                item.save()          # BillItem.save() restores old stock, then deducts new qty
                 bill.calculate_total()
-                messages.success(request, f'{item.product.name} updated.')
-        except (ValueError, TypeError):
-            messages.error(request, 'Invalid quantity or discount value.')
+                messages.success(request, f'{item.product.name} qty updated to {new_qty}.')
+        except ValueError as e:
+            # Catches "Insufficient stock!" from BillItem.save() and other ValueErrors
+            messages.error(request, str(e) if str(e) else 'Invalid quantity value.')
+        except TypeError:
+            messages.error(request, 'Invalid quantity value.')
     return redirect('bill_items', pk=bill_pk)

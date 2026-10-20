@@ -343,11 +343,13 @@
         updateSelectedProductDetails();
     });
 
-    // ===== QTY INLINE EDIT — simple and reliable =====
+    // ===== QTY INLINE EDIT — reliable with double-submit guard =====
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.qty-input').forEach(function(input) {
+            var submitting = false;
 
             function saveQty() {
+                if (submitting) return;   // prevent double-submit from blur firing after Enter
                 var newVal = parseInt(input.value, 10);
                 var origVal = parseInt(input.getAttribute('data-orig'), 10);
                 if (isNaN(newVal) || newVal < 1) {
@@ -355,6 +357,8 @@
                     return;
                 }
                 if (newVal !== origVal) {
+                    submitting = true;
+                    input.setAttribute('data-orig', newVal);  // update immediately to prevent re-trigger
                     input.closest('form').submit();
                 }
             }
