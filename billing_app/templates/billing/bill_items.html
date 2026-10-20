@@ -90,7 +90,6 @@
                                 <th>Product</th>
                                 <th class="text-center">Qty</th>
                                 <th class="text-end">Rate</th>
-                                <th class="text-center">Disc.%</th>
                                 <th class="text-end">Total</th>
                                 <th class="text-center">Remove</th>
                             </tr>
@@ -101,34 +100,20 @@
                                 <td>{{ item.product.code|default:"-" }}</td>
                                 <td><strong>{{ item.product.name }}</strong></td>
 
-                                <!-- Always-visible Qty input -->
+                                <!-- Qty input — saves on Enter or click away -->
                                 <td class="text-center">
-                                    <form method="POST" action="{% url 'update_bill_item' bill.id item.id %}" class="d-inline update-form">
+                                    <form method="POST" action="{% url 'update_bill_item' bill.id item.id %}" class="qty-form">
                                         {% csrf_token %}
-                                        <input type="number" name="quantity" value="{{ item.quantity }}" min="1"
-                                               class="form-control form-control-sm text-center inline-edit-input"
-                                               data-item-id="{{ item.id }}"
-                                               data-field="qty"
-                                               style="width:65px;display:inline-block;">
+                                        <input type="number" name="quantity"
+                                               value="{{ item.quantity }}" min="1"
+                                               data-orig="{{ item.quantity }}"
+                                               class="form-control form-control-sm text-center qty-input"
+                                               style="width:70px;display:inline-block;">
                                         <input type="hidden" name="item_discount" value="{{ item.item_discount }}">
                                     </form>
                                 </td>
 
                                 <td class="text-end">Rs. {{ item.unit_price }}</td>
-
-                                <!-- Always-visible Discount input -->
-                                <td class="text-center">
-                                    <form method="POST" action="{% url 'update_bill_item' bill.id item.id %}" class="d-inline update-form">
-                                        {% csrf_token %}
-                                        <input type="number" name="item_discount" value="{{ item.item_discount }}" min="0" max="100" step="0.1"
-                                               class="form-control form-control-sm text-center inline-edit-input"
-                                               data-item-id="{{ item.id }}"
-                                               data-field="disc"
-                                               style="width:65px;display:inline-block;">
-                                        <input type="hidden" name="quantity" value="{{ item.quantity }}">
-                                    </form>
-                                </td>
-
                                 <td class="text-end fw-bold">Rs. {{ item.item_total }}</td>
                                 <td class="text-center">
                                     <a href="{% url 'remove_bill_item' bill.id item.id %}"
@@ -358,41 +343,18 @@
         updateSelectedProductDetails();
     });
 
-    // ===== INLINE EDIT: robust numeric comparison =====
+    // ===== QTY INLINE EDIT — simple and reliable =====
     document.addEventListener('DOMContentLoaded', function() {
-        var origValues = {};
+        document.querySelectorAll('.qty-input').forEach(function(input) {
 
-        document.querySelectorAll('.inline-edit-input').forEach(function(input) {
-            var key = input.dataset.itemId + '_' + input.name;
-            // Store initial value numerically
-            origValues[key] = parseFloat(input.value) || 0;
-
-            // Refresh original on focus
-            input.addEventListener('focus', function() {
-                origValues[key] = parseFloat(input.value) || 0;
-            });
-
-            function trySubmit() {
-                var rawVal = input.value.trim();
-                var isQty  = input.name === 'quantity';
-                var num    = isQty ? parseInt(rawVal, 10) : parseFloat(rawVal);
-
-                // Validate
-                if (rawVal === '' || isNaN(num)) {
-                    input.value = origValues[key] !== undefined ? origValues[key] : (isQty ? 1 : 0);
+            function saveQty() {
+                var newVal = parseInt(input.value, 10);
+                var origVal = parseInt(input.getAttribute('data-orig'), 10);
+                if (isNaN(newVal) || newVal < 1) {
+                    input.value = origVal;   // revert if invalid
                     return;
                 }
-                if (isQty && num < 1) {         // qty must be >= 1
-                    input.value = origValues[key] || 1;
-                    return;
-                }
-                if (!isQty && num < 0) {         // discount can be 0, just not negative
-                    input.value = origValues[key] || 0;
-                    return;
-                }
-
-                // Submit only if value actually changed (numeric compare)
-                if (num !== origValues[key]) {
+                if (newVal !== origVal) {
                     input.closest('form').submit();
                 }
             }
@@ -400,16 +362,15 @@
             input.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    trySubmit();
+                    saveQty();
                 }
                 if (e.key === 'Escape') {
-                    input.value = origValues[key] !== undefined ? origValues[key] : input.defaultValue;
+                    input.value = input.getAttribute('data-orig');
                     input.blur();
                 }
             });
 
-            // Save on click away
-            input.addEventListener('blur', trySubmit);
+            input.addEventListener('blur', saveQty);
         });
     });
 </script>
