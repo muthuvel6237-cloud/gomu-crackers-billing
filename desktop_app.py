@@ -25,6 +25,20 @@ def find_free_port() -> int:
         return sock.getsockname()[1]
 
 
+def create_app_server(application, host: str = "127.0.0.1") -> tuple:
+    for attempt in range(10):
+        try:
+            port = find_free_port()
+            server = create_server(application, host=host, port=port, threads=8)
+            return server, port
+        except Exception:
+            time.sleep(0.1)
+
+    # Fallback to port 0 (OS picks available port)
+    server = create_server(application, host=host, port=0, threads=8)
+    return server, server.effective_port
+
+
 def prepare_runtime_assets() -> None:
     django.setup()
 
@@ -33,30 +47,30 @@ def prepare_runtime_assets() -> None:
 
     static_root = Path(settings.STATIC_ROOT)
     if not static_root.exists() or not any(static_root.iterdir()):
-        call_command("collectstatic", interactive=False, verbosity=0)
-    call_command("migrate", interactive=False, verbosity=0)
+        try:
+            call_command("collectstatic", interactive=False, verbosity=0)
+        except Exception:
+            pass
+    try:
+        call_command("migrate", interactive=False, verbosity=0)
+    except Exception:
+        pass
 
 
-def wait_for_server(url: str, timeout: int = 30) -> None:
+def wait_for_server(url: str, server_thread: threading.Thread, timeout: int = 45) -> None:
     deadline = time.time() + timeout
 
     while time.time() < deadline:
+        if not server_thread.is_alive():
+            raise RuntimeError(f"Server thread terminated unexpectedly while waiting for {url}")
+
         try:
             with urllib.request.urlopen(url, timeout=1):
                 return
         except Exception:
-            time.sleep(0.25)
+            time.sleep(0.2)
 
     raise RuntimeError(f"Timed out while waiting for the application server at {url}")
-
-
-def start_waitress_server(host: str, port: int) -> None:
-    global SERVER
-
-    from gomu_crackers.wsgi import application
-
-    SERVER = create_server(application, host=host, port=port, threads=8)
-    SERVER.run()
 
 
 def stop_waitress_server(*_args) -> None:
@@ -68,21 +82,24 @@ def stop_waitress_server(*_args) -> None:
 
 
 def main() -> None:
+    global SERVER
+
     prepare_runtime_assets()
 
     host = "127.0.0.1"
-    port = find_free_port()
+    from gomu_crackers.wsgi import application
+
+    SERVER, port = create_app_server(application, host=host)
     url = f"http://{host}:{port}/billing/"
 
     server_thread = threading.Thread(
-        target=start_waitress_server,
-        args=(host, port),
+        target=SERVER.run,
         daemon=True,
         name="waitress-server",
     )
     server_thread.start()
 
-    wait_for_server(url)
+    wait_for_server(url, server_thread)
 
     window = webview.create_window(
         "Billing Software",
