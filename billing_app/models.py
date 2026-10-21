@@ -1,6 +1,7 @@
 from django.db import models, transaction
 from django.utils import timezone
 from datetime import datetime
+from decimal import Decimal
 
 class ShopSettings(models.Model):
     shop_name = models.CharField(max_length=200, default='Crackers Shop')
@@ -141,9 +142,10 @@ class Bill(models.Model):
     def calculate_total(self):
         """Calculate subtotal, discount, and total (without GST)"""
         self.subtotal = sum(item.item_total for item in self.billitem_set.all())
-        self.discount_amount = (self.subtotal * self.discount_percent) / 100
+        discount_pct = Decimal(str(self.discount_percent or 0))
+        self.discount_amount = (self.subtotal * discount_pct) / Decimal('100')
         self.total_amount = round(self.subtotal - self.discount_amount)
-        self.change_amount = self.payment_received - self.total_amount
+        self.change_amount = Decimal(str(self.payment_received or 0)) - self.total_amount
         self.save()
         return self.total_amount
 
@@ -178,8 +180,9 @@ class BillItem(models.Model):
             if product.quantity < self.quantity:
                 raise ValueError(f'Insufficient stock! Available: {product.quantity} {self.unit}')
 
-            subtotal = self.quantity * self.unit_price
-            discount_amount = (subtotal * self.item_discount / 100)
+            subtotal = Decimal(str(self.quantity)) * Decimal(str(self.unit_price))
+            discount_val = Decimal(str(self.item_discount or 0))
+            discount_amount = (subtotal * discount_val) / Decimal('100')
             self.item_total = subtotal - discount_amount
 
             product.quantity -= self.quantity

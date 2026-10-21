@@ -1069,9 +1069,9 @@ def update_bill_item(request, bill_pk, item_pk):
             # Robust discount parsing — 0 if empty/missing
             disc_raw = (request.POST.get('item_discount') or '0').strip()
             try:
-                new_disc = float(disc_raw)
-            except (ValueError, TypeError):
-                new_disc = float(item.item_discount or 0)
+                new_disc = Decimal(disc_raw)
+            except (InvalidOperation, ValueError, TypeError):
+                new_disc = Decimal(str(item.item_discount or 0))
 
             item.quantity = new_qty
             item.item_discount = new_disc
