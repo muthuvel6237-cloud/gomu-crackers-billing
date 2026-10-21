@@ -65,8 +65,8 @@ class Product(models.Model):
     
     def __str__(self):
         if self.code:
-            return f"[{self.code}] {self.name} ({self.get_unit_display()}) - Stock: {self.quantity}"
-        return f"{self.name} ({self.get_unit_display()}) - Stock: {self.quantity}"
+            return f"[{self.code}] {self.name} ({self.get_unit_display()})"
+        return f"{self.name} ({self.get_unit_display()})"
     
     def is_low_stock(self):
         return self.quantity < 10
@@ -149,11 +149,19 @@ class Bill(models.Model):
         self.save()
         return self.total_amount
 
+    @property
+    def gross_total(self):
+        """Sum of quantity * unit_price before product discounts"""
+        return sum((item.quantity * item.unit_price) for item in self.billitem_set.all())
+
+    @property
+    def total_product_discount(self):
+        """Total discount from individual items"""
+        return sum(((item.quantity * item.unit_price) * Decimal(str(item.item_discount or 0)) / Decimal('100')) for item in self.billitem_set.all())
+
     def delete(self, *args, **kwargs):
-        with transaction.atomic():
-            for item in self.billitem_set.select_related('product').all():
-                item.delete()
-            return super().delete(*args, **kwargs)
+        self.billitem_set.all().delete()
+        return super().delete(*args, **kwargs)
 
 class BillItem(models.Model):
     bill = models.ForeignKey(Bill, on_delete=models.CASCADE)
@@ -165,35 +173,19 @@ class BillItem(models.Model):
     item_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     def save(self, *args, **kwargs):
-        with transaction.atomic():
-            if self.pk:
-                old_item = BillItem.objects.select_related('product').get(pk=self.pk)
-                old_product = Product.objects.select_for_update().get(pk=old_item.product_id)
-                old_product.quantity += old_item.quantity
-                old_product.save()
+        product = Product.objects.get(pk=self.product_id)
+        self.product = product
+        self.unit_price = product.price
+        self.unit = product.get_unit_display()
 
-            product = Product.objects.select_for_update().get(pk=self.product_id)
-            self.product = product
-            self.unit_price = product.price
-            self.unit = product.get_unit_display()
+        subtotal = Decimal(str(self.quantity)) * Decimal(str(self.unit_price))
+        discount_val = Decimal(str(self.item_discount or 0))
+        discount_amount = (subtotal * discount_val) / Decimal('100')
+        self.item_total = subtotal - discount_amount
 
-            if product.quantity < self.quantity:
-                raise ValueError(f'Insufficient stock! Available: {product.quantity} {self.unit}')
-
-            subtotal = Decimal(str(self.quantity)) * Decimal(str(self.unit_price))
-            discount_val = Decimal(str(self.item_discount or 0))
-            discount_amount = (subtotal * discount_val) / Decimal('100')
-            self.item_total = subtotal - discount_amount
-
-            product.quantity -= self.quantity
-            product.save()
-
-            super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        # Restore stock when item is deleted
-        self.product.quantity += self.quantity
-        self.product.save()
         super().delete(*args, **kwargs)
 
     def __str__(self):

@@ -1,12 +1,12 @@
 {% extends 'billing/base.html' %}
 
-{% block title %}New Bill - Crackers Billing{% endblock %}
+{% block title %}{% if is_edit %}Edit Bill #{{ bill.bill_number }}{% else %}New Bill{% endif %} - Crackers Billing{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center gap-3 mb-4 flex-wrap">
     <div>
-        <h1 class="page-title mb-1"><i class="bi bi-receipt"></i> New Bill</h1>
-        <div class="text-muted">Step 1 customer, Step 2 payment, Step 3 add products.</div>
+        <h1 class="page-title mb-1"><i class="bi bi-receipt"></i> {% if is_edit %}Edit Bill #{{ bill.bill_number }}{% else %}New Bill{% endif %}</h1>
+        <div class="text-muted">{% if is_edit %}Update customer & bill discount, then proceed to products.{% else %}Step 1 customer, Step 2 payment & discount, Step 3 add products.{% endif %}</div>
     </div>
     <a href="{% url 'bill_list' %}" class="btn btn-secondary">
         <i class="bi bi-arrow-left"></i> Bills
@@ -101,12 +101,12 @@
                 <div class="step-list">
                     <div><i class="bi bi-check-circle"></i> Customer is optional</div>
                     <div><i class="bi bi-check-circle"></i> Products are added next</div>
-                    <div><i class="bi bi-check-circle"></i> Stock reduces automatically</div>
+                    <div><i class="bi bi-check-circle"></i> Bill discount applies to entire bill</div>
                     <div><i class="bi bi-check-circle"></i> PDF bill is generated at finish</div>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-lg w-100 mt-4">
-                    <i class="bi bi-arrow-right-circle"></i> Continue to Products
+                    <i class="bi bi-arrow-right-circle"></i> {% if is_edit %}Save &amp; Continue to Products{% else %}Continue to Products{% endif %}
                 </button>
             </div>
         </div>

@@ -30,6 +30,7 @@ urlpatterns = [
     # Bills
     path('bills/', views.bill_list, name='bill_list'),
     path('bills/create/', views.bill_create, name='bill_create'),
+    path('bills/<int:pk>/edit/', views.bill_edit, name='bill_edit'),
     path('bills/<int:pk>/items/', views.bill_items, name='bill_items'),
     path('bills/<int:pk>/finalize/', views.bill_finalize, name='bill_finalize'),
     path('bills/<int:pk>/', views.bill_detail, name='bill_detail'),

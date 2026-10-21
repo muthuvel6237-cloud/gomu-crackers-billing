@@ -135,15 +135,9 @@
                 <a href="{% url 'bill_list' %}" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Back to Bills
                 </a>
-                {% if bill.is_completed %}
-                    <a href="{% url 'bill_reopen' bill.id %}" class="btn btn-warning">
-                        <i class="bi bi-pencil"></i> Edit Bill
-                    </a>
-                {% else %}
-                    <a href="{% url 'bill_items' bill.id %}" class="btn btn-warning">
-                        <i class="bi bi-pencil"></i> Edit Bill
-                    </a>
-                {% endif %}
+                <a href="{% url 'bill_edit' bill.id %}" class="btn btn-warning">
+                    <i class="bi bi-pencil"></i> Edit Bill &amp; Discount
+                </a>
             </div>
         </div>
 

@@ -9,6 +9,8 @@
         <div class="text-muted">
             Bill <strong style="color:#b08a00;">{{ bill.bill_number }}</strong>
             {% if bill.customer %}for <strong>{{ bill.customer.name }}</strong>{% else %}for <strong>Walk-in Customer</strong>{% endif %}
+            &bull; Bill Discount: <strong class="text-danger">{{ bill.discount_percent|floatformat:"0" }}%</strong>
+            <a href="{% url 'bill_edit' bill.id %}" class="badge bg-warning text-dark text-decoration-none ms-1"><i class="bi bi-pencil"></i> Edit</a>
         </div>
     </div>
     <a href="{% url 'bill_list' %}" class="btn btn-secondary">
@@ -64,7 +66,7 @@
 
                     <div class="alert alert-info mt-3">
                         <i class="bi bi-info-circle"></i>
-                        Select product, enter quantity, press <strong>Enter</strong> or click Add. Stock reduces automatically.
+                        Select product, enter quantity, press <strong>Enter</strong> or click Add.
                     </div>
 
                     <button type="submit" class="btn btn-primary btn-lg w-100">
@@ -88,31 +90,39 @@
                             <tr>
                                 <th>Code</th>
                                 <th>Product</th>
-                                <th class="text-center">Qty</th>
+                                <th class="text-center" style="width: 80px;">Qty</th>
                                 <th class="text-end">Rate</th>
+                                <th class="text-center" style="width: 80px;">Disc %</th>
                                 <th class="text-end">Total</th>
                                 <th class="text-center">Remove</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for item in items %}
-                            <tr>
+                            <tr class="bill-item-row" data-url="{% url 'update_bill_item' bill.id item.id %}" data-csrf="{{ csrf_token }}">
                                 <td>{{ item.product.code|default:"-" }}</td>
                                 <td><strong>{{ item.product.name }}</strong></td>
 
-                                <!-- Qty input — saves via AJAX on Enter or blur -->
+                                <!-- Qty input -->
                                 <td class="text-center">
                                     <input type="number"
                                            value="{{ item.quantity }}" min="1"
                                            data-orig="{{ item.quantity }}"
-                                           data-url="{% url 'update_bill_item' bill.id item.id %}"
-                                           data-discount="{{ item.item_discount }}"
-                                           data-csrf="{{ csrf_token }}"
                                            class="form-control form-control-sm text-center qty-input"
-                                           style="width:70px;display:inline-block;">
+                                           style="width:65px;display:inline-block;">
                                 </td>
 
                                 <td class="text-end">Rs. {{ item.unit_price }}</td>
+
+                                <!-- Product Disc % input -->
+                                <td class="text-center">
+                                    <input type="number" step="0.01" min="0" max="100"
+                                           value="{{ item.item_discount|floatformat:"0" }}"
+                                           data-orig="{{ item.item_discount|floatformat:"0" }}"
+                                           class="form-control form-control-sm text-center disc-input"
+                                           style="width:65px;display:inline-block;">
+                                </td>
+
                                 <td class="text-end fw-bold item-total-cell">Rs. {{ item.item_total|floatformat:"0" }}</td>
                                 <td class="text-center">
                                     <a href="{% url 'remove_bill_item' bill.id item.id %}"
@@ -129,15 +139,31 @@
                 </div>
 
                 <div class="bill-total-box">
-                    <div><span>Subtotal</span><strong id="bill-subtotal-val">Rs. {{ bill.subtotal|floatformat:"0" }}</strong></div>
-                    {% if bill.discount_amount > 0 %}
-                    <div><span>Bill Discount</span><strong>-Rs. {{ bill.discount_amount }}</strong></div>
-                    {% endif %}
+                    <div>
+                        <span>Goods Value</span>
+                        <strong id="bill-gross-val">Rs. {{ bill.gross_total|floatformat:"0" }}</strong>
+                    </div>
+                    <div id="bill-prod-disc-row" style="{% if bill.total_product_discount <= 0 %}display:none;{% endif %}">
+                        <span class="text-muted">Product Discounts</span>
+                        <strong class="text-success" id="bill-prod-disc-val">-Rs. {{ bill.total_product_discount|floatformat:"0" }}</strong>
+                    </div>
+                    <div>
+                        <span>Subtotal</span>
+                        <strong id="bill-subtotal-val">Rs. {{ bill.subtotal|floatformat:"0" }}</strong>
+                    </div>
+                    <div id="bill-disc-row" style="{% if bill.discount_amount <= 0 and bill.discount_percent <= 0 %}display:none;{% endif %}">
+                        <span>Bill Discount (<span id="bill-disc-pct">{{ bill.discount_percent|floatformat:"0" }}</span>%)</span>
+                        <strong class="text-danger" id="bill-disc-amt">-Rs. {{ bill.discount_amount|floatformat:"0" }}</strong>
+                    </div>
                     <div class="grand-total">
                         <span>Total</span>
                         <strong id="bill-total-val">Rs. {{ bill.total_amount|floatformat:"0" }}</strong>
                     </div>
                 </div>
+
+                <a href="{% url 'bill_edit' bill.id %}" class="btn btn-outline-warning w-100 mt-2">
+                    <i class="bi bi-pencil"></i> Edit Customer &amp; Bill Discount ({{ bill.discount_percent|floatformat:"0" }}%)
+                </a>
 
                 <a href="{% url 'bill_finalize' bill.id %}" class="btn btn-success btn-lg w-100 mt-3">
                     <i class="bi bi-check-circle"></i> Finish &amp; Print Bill
@@ -342,36 +368,44 @@
         updateSelectedProductDetails();
     });
 
-    // ===== QTY INLINE EDIT — AJAX, no page reload, no double-submit =====
+    // ===== INLINE EDIT FOR QTY & PRODUCT DISCOUNT =====
     document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.qty-input').forEach(function(input) {
-            var saving = false;
+        document.querySelectorAll('.bill-item-row').forEach(function(row) {
+            var qtyInput  = row.querySelector('.qty-input');
+            var discInput = row.querySelector('.disc-input');
+            var url       = row.getAttribute('data-url');
+            var csrf      = row.getAttribute('data-csrf');
+            var isSaving  = false;
 
-            function saveQty() {
-                if (saving) return;
+            function saveRow() {
+                if (isSaving) return;
 
-                var newVal = parseInt(input.value, 10);
-                var origVal = parseInt(input.getAttribute('data-orig'), 10);
+                var newQty  = parseInt(qtyInput.value, 10);
+                var origQty = parseInt(qtyInput.getAttribute('data-orig'), 10);
+                var newDisc = parseFloat(discInput.value);
+                var origDisc = parseFloat(discInput.getAttribute('data-orig'));
 
-                // Revert bad values
-                if (isNaN(newVal) || newVal < 1) {
-                    input.value = origVal;
+                if (isNaN(newQty) || newQty < 1) {
+                    qtyInput.value = origQty;
                     return;
                 }
-                // Nothing changed — skip
-                if (newVal === origVal) return;
+                if (isNaN(newDisc) || newDisc < 0) {
+                    discInput.value = origDisc;
+                    return;
+                }
 
-                saving = true;
-                input.style.opacity = '0.4';
-                input.disabled = true;
+                // Skip if neither changed
+                if (newQty === origQty && newDisc === origDisc) return;
 
-                var url      = input.getAttribute('data-url');
-                var csrf     = input.getAttribute('data-csrf');
-                var discount = input.getAttribute('data-discount') || '0';
+                isSaving = true;
+                qtyInput.disabled = true;
+                discInput.disabled = true;
+                qtyInput.style.opacity = '0.5';
+                discInput.style.opacity = '0.5';
 
                 var body = 'csrfmiddlewaretoken=' + encodeURIComponent(csrf)
-                         + '&quantity=' + newVal
-                         + '&item_discount=' + encodeURIComponent(discount);
+                         + '&quantity=' + newQty
+                         + '&item_discount=' + newDisc;
 
                 fetch(url, {
                     method: 'POST',
@@ -383,56 +417,92 @@
                 })
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
-                    input.style.opacity = '1';
-                    input.disabled = false;
-                    saving = false;
+                    qtyInput.disabled = false;
+                    discInput.disabled = false;
+                    qtyInput.style.opacity = '1';
+                    discInput.style.opacity = '1';
+                    isSaving = false;
 
                     if (data.ok) {
-                        // Update data-orig so next blur doesn't re-save
-                        input.setAttribute('data-orig', newVal);
+                        qtyInput.setAttribute('data-orig', newQty);
+                        discInput.setAttribute('data-orig', newDisc);
 
-                        // Update this row's total
-                        var row = input.closest('tr');
-                        if (row) {
-                            var totalCell = row.querySelector('.item-total-cell');
-                            if (totalCell) totalCell.textContent = 'Rs. ' + Math.round(parseFloat(data.item_total));
+                        // Row item total
+                        var totalCell = row.querySelector('.item-total-cell');
+                        if (totalCell) totalCell.textContent = 'Rs. ' + Math.round(parseFloat(data.item_total));
+
+                        // Gross goods value
+                        var grossEl = document.getElementById('bill-gross-val');
+                        if (grossEl && data.gross_total) grossEl.textContent = 'Rs. ' + Math.round(parseFloat(data.gross_total));
+
+                        // Product discounts
+                        var prodDiscVal = parseFloat(data.total_product_discount || 0);
+                        var prodDiscRow = document.getElementById('bill-prod-disc-row');
+                        var prodDiscEl  = document.getElementById('bill-prod-disc-val');
+                        if (prodDiscRow && prodDiscEl) {
+                            if (prodDiscVal > 0) {
+                                prodDiscEl.textContent = '-Rs. ' + Math.round(prodDiscVal);
+                                prodDiscRow.style.display = 'flex';
+                            } else {
+                                prodDiscRow.style.display = 'none';
+                            }
                         }
 
-                        // Update bill subtotal & total
+                        // Subtotal
                         var subEl = document.getElementById('bill-subtotal-val');
-                        var totEl = document.getElementById('bill-total-val');
                         if (subEl) subEl.textContent = 'Rs. ' + Math.round(parseFloat(data.bill_subtotal));
+
+                        // Bill discount
+                        var billDiscRow = document.getElementById('bill-disc-row');
+                        var billDiscAmt = document.getElementById('bill-disc-amt');
+                        var billDiscPct = document.getElementById('bill-disc-pct');
+                        var billDiscAmtVal = parseFloat(data.bill_discount_amount || 0);
+                        if (billDiscRow && billDiscAmt && billDiscPct) {
+                            billDiscPct.textContent = Math.round(parseFloat(data.bill_discount_percent || 0));
+                            if (billDiscAmtVal > 0) {
+                                billDiscAmt.textContent = '-Rs. ' + Math.round(billDiscAmtVal);
+                                billDiscRow.style.display = 'flex';
+                            } else {
+                                billDiscRow.style.display = 'none';
+                            }
+                        }
+
+                        // Grand total
+                        var totEl = document.getElementById('bill-total-val');
                         if (totEl) totEl.textContent = 'Rs. ' + Math.round(parseFloat(data.bill_total));
                     } else {
-                        // Revert and show error
-                        input.value = origVal;
-                        alert(data.error || 'Could not update quantity.');
+                        qtyInput.value = origQty;
+                        discInput.value = origDisc;
+                        alert(data.error || 'Could not update.');
                     }
                 })
                 .catch(function() {
-                    input.style.opacity = '1';
-                    input.disabled = false;
-                    saving = false;
-                    input.value = origVal;
+                    qtyInput.disabled = false;
+                    discInput.disabled = false;
+                    qtyInput.style.opacity = '1';
+                    discInput.style.opacity = '1';
+                    isSaving = false;
+                    qtyInput.value = origQty;
+                    discInput.value = origDisc;
                     alert('Network error. Please try again.');
                 });
             }
 
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    input.blur();   // blur triggers saveQty
-                }
-                if (e.key === 'Escape') {
-                    input.value = input.getAttribute('data-orig');
-                    input.blur();
-                }
+            [qtyInput, discInput].forEach(function(inp) {
+                inp.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        inp.blur();
+                    }
+                    if (e.key === 'Escape') {
+                        inp.value = inp.getAttribute('data-orig');
+                        inp.blur();
+                    }
+                });
+                inp.addEventListener('blur', saveRow);
             });
-
-            input.addEventListener('blur', saveQty);
         });
-    });
-</script>
+    });</script>
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

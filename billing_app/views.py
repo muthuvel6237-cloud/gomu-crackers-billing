@@ -674,12 +674,42 @@ def bill_finalize(request, pk):
     messages.success(request, 'Bill completed!')
     return redirect('bill_detail', pk=pk)
 
+def bill_edit(request, pk):
+    bill = get_object_or_404(Bill, pk=pk)
+    if bill.is_completed:
+        bill.is_completed = False
+        bill.save()
+
+    if request.method == 'POST':
+        form = BillForm(request.POST, instance=bill)
+        if form.is_valid():
+            bill = form.save(commit=False)
+            quick_name = request.POST.get('quick_customer_name', '').strip()
+            quick_phone = request.POST.get('quick_customer_phone', '').strip()
+            if quick_name:
+                if not bill.customer or bill.customer.name == 'Walk-in Customer':
+                    bill.customer = Customer.objects.create(name=quick_name, phone=quick_phone or 'Walk-in')
+            bill.save()
+            bill.calculate_total()
+            messages.success(request, f'Bill #{bill.bill_number} updated.')
+            return redirect('bill_items', pk=bill.pk)
+    else:
+        form = BillForm(instance=bill)
+
+    context = {
+        'form': form,
+        'bill': bill,
+        'is_edit': True,
+    }
+    return render(request, 'billing/bill_form.html', context)
+
+
 def bill_reopen(request, pk):
     bill = get_object_or_404(Bill, pk=pk)
     bill.is_completed = False
     bill.save()
     messages.success(request, f'Bill #{bill.bill_number} reopened for editing.')
-    return redirect('bill_items', pk=pk)
+    return redirect('bill_edit', pk=pk)
 
 
 def bill_detail(request, pk):
@@ -1082,11 +1112,16 @@ def update_bill_item(request, bill_pk, item_pk):
                 return JsonResponse({
                     'ok': True,
                     'new_qty': new_qty,
+                    'new_disc': str(new_disc),
                     'item_total': str(item.item_total),
+                    'gross_total': str(bill.gross_total),
+                    'total_product_discount': str(bill.total_product_discount),
                     'bill_subtotal': str(bill.subtotal),
+                    'bill_discount_percent': str(bill.discount_percent),
+                    'bill_discount_amount': str(bill.discount_amount),
                     'bill_total': str(bill.total_amount),
                 })
-            messages.success(request, f'{item.product.name} qty updated to {new_qty}.')
+            messages.success(request, f'{item.product.name} updated.')
 
         except ValueError as e:
             err_msg = str(e) or 'Invalid quantity.'
