@@ -8,6 +8,9 @@ from pathlib import Path
 import webview
 from waitress.server import create_server
 
+# Enable file downloads (PDF bills, Excel exports, DB backups)
+webview.settings['ALLOW_DOWNLOADS'] = True
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "gomu_crackers.settings")
 
 import django  # noqa: E402
