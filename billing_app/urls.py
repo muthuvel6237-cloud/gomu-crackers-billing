@@ -38,6 +38,7 @@ urlpatterns = [
     path('bill/delete/<int:pk>/', views.delete_bill, name='delete_bill'),
     path('bills/<int:bill_pk>/items/<int:item_pk>/remove/', views.remove_bill_item, name='remove_bill_item'),
     path('bills/<int:bill_pk>/items/<int:item_pk>/update/', views.update_bill_item, name='update_bill_item'),
+    path('bills/<int:pk>/update-discount/', views.update_bill_discount, name='update_bill_discount'),
     path('bills/<int:pk>/reopen/', views.bill_reopen, name='bill_reopen'),
     path('get-product-price/<int:product_id>/', views.get_product_price, name='get_product_price'),
 

@@ -7,7 +7,7 @@ from django.utils import timezone
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from reportlab.lib.pagesizes import letter, A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
@@ -873,83 +873,86 @@ def generate_bill_pdf(request, pk):
     story.append(Paragraph(customer_text, small_style))
     story.append(Spacer(1, 0.25 * inch))
 
-    # ===== PRODUCT TABLE =====
-    data = [['S.No', 'Code', 'Product', 'Unit', 'Qty', 'Rate', 'Amount']]
+    # ===== PRODUCT TABLES (20 products per page) =====
+    ITEMS_PER_PAGE = 20
+    all_items = list(bill.billitem_set.all())
+    item_chunks = [all_items[i:i + ITEMS_PER_PAGE] for i in range(0, len(all_items), ITEMS_PER_PAGE)]
+    if not item_chunks:
+        item_chunks = [[]]
 
-    items = bill.billitem_set.all()
+    for chunk_idx, chunk in enumerate(item_chunks):
+        if chunk_idx > 0:
+            story.append(PageBreak())
+            cont_details = Paragraph(
+                f"<b>GOMU CRACKERS</b> &nbsp;|&nbsp; <b>Bill No:</b> {bill.bill_number} &nbsp;|&nbsp; "
+                f"<b>Customer:</b> {customer_name} &nbsp;|&nbsp; <i>Page {chunk_idx + 1}</i>",
+                small_style
+            )
+            story.append(cont_details)
+            story.append(Spacer(1, 0.12 * inch))
 
-    for i, item in enumerate(items, start=1):
-        # CALCULATE AMOUNT FIRST
-        item_total_before_discount = item.quantity * item.unit_price
-        discount = item.item_discount or 0
-        discount_amount = item_total_before_discount * discount / 100
-        final_amount = item_total_before_discount - discount_amount
+        chunk_data = [['S.No', 'Code', 'Product', 'Unit', 'Qty', 'Rate', 'Amount']]
+        start_num = (chunk_idx * ITEMS_PER_PAGE) + 1
 
-        # THEN APPEND WITH CORRECT AMOUNT
-        data.append([
-            str(i),
-            item.product.code if item.product.code else "-",
-            item.product.name,
-            item.unit,
-            str(item.quantity),
-            f"{item.unit_price:.2f}",
-            f"{final_amount:.2f}"  # NOW CORRECT
+        for i, item in enumerate(chunk, start=start_num):
+            item_total_before = item.quantity * item.unit_price
+            discount = Decimal(str(item.item_discount or 0))
+            discount_amount = (item_total_before * discount) / Decimal('100')
+            final_amount = item_total_before - discount_amount
+
+            chunk_data.append([
+                str(i),
+                item.product.code if item.product.code else "-",
+                item.product.name,
+                item.unit or "",
+                str(item.quantity),
+                f"{item.unit_price:.2f}",
+                f"{final_amount:.2f}"
+            ])
+
+        chunk_table = Table(chunk_data, colWidths=[
+            0.5 * inch,
+            0.8 * inch,
+            2.5 * inch,
+            0.7 * inch,
+            0.8 * inch,
+            0.8 * inch,
+            1.0 * inch
         ])
 
-    product_table = Table(data, colWidths=[
-        0.5 * inch,
-        0.8 * inch,
-        2.5 * inch,
-        0.7 * inch,
-        0.8 * inch,
-        0.8 * inch,
-        1 * inch
-    ])
+        chunk_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.black),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 0.7, colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('ALIGN', (1, 1), (1, -1), 'CENTER'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ]))
 
-    product_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.black),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('GRID', (0, 0), (-1, -1), 0.7, colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('ALIGN', (1, 1), (1, -1), 'CENTER'),
-        ('FONTSIZE', (0, 0), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-    ]))
-    
-    product_table.hAlign = 'LEFT'
-    story.append(product_table)
-    story.append(Spacer(1, 0.15 * inch))
+        chunk_table.hAlign = 'LEFT'
+        story.append(chunk_table)
+        story.append(Spacer(1, 0.12 * inch))
 
     # ===== TOTAL TABLE =====
-    subtotal = 0
-    total_discount_amount = 0
-
-    for item in bill.billitem_set.all():
-        item_total = item.quantity * item.unit_price
-        item_discount = item_total * (item.item_discount or 0) / 100
-
-        subtotal += item_total
-        total_discount_amount += item_discount
-
-    bill_discount = bill.discount_amount if bill.discount_percent > 0 else 0
+    subtotal = bill.gross_total
+    total_discount_amount = bill.total_product_discount
+    bill_discount = bill.discount_amount
     grand_total = bill.total_amount
 
     totals = [['Goods Value', f"{subtotal:.2f}"]]
-    
+
     if total_discount_amount > 0:
         totals.append(['Item Discounts', f"-{total_discount_amount:.2f}"])
-    
-    if bill.discount_percent > 0:
-        discount_label = f"Bill Discount ({bill.discount_percent:.0f}%)"
-        totals.append([discount_label, f"-{bill_discount:.2f}"])
-    
+
+    totals.append([f"Bill Discount ({bill.discount_percent:.0f}%)", f"-{bill_discount:.2f}"])
     totals.append(['Grand Total', f"{grand_total:.0f}"])
 
-    total_table = Table(totals, colWidths=[1.5 * inch, 1.0 * inch])
+    total_table = Table(totals, colWidths=[1.8 * inch, 1.1 * inch])
 
     total_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, -1), 1, colors.black),
@@ -959,8 +962,8 @@ def generate_bill_pdf(request, pk):
         ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#FFD700')),
         ('TEXTCOLOR', (0, -1), (-1, -1), colors.black),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
 
     total_table.hAlign = 'RIGHT'
@@ -1078,6 +1081,30 @@ def restore_db(request):
     else:
         messages.error(request, 'No file uploaded.')
     return redirect('settings')
+
+
+def update_bill_discount(request, pk):
+    bill = get_object_or_404(Bill, pk=pk)
+    if request.method == 'POST':
+        try:
+            disc_raw = (request.POST.get('discount_percent') or '0').strip()
+            new_disc = Decimal(disc_raw)
+            if new_disc < 0:
+                new_disc = Decimal('0')
+            bill.discount_percent = new_disc
+            bill.calculate_total()
+            return JsonResponse({
+                'ok': True,
+                'discount_percent': str(bill.discount_percent),
+                'discount_amount': str(bill.discount_amount),
+                'bill_total': str(bill.total_amount),
+                'bill_subtotal': str(bill.subtotal),
+                'gross_total': str(bill.gross_total),
+                'total_product_discount': str(bill.total_product_discount),
+            })
+        except Exception as e:
+            return JsonResponse({'ok': False, 'error': str(e)}, status=400)
+    return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
 
 
 def update_bill_item(request, bill_pk, item_pk):

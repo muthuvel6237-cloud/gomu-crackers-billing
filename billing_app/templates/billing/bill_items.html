@@ -79,8 +79,11 @@
 
     <div class="col-lg-6">
         <div class="billing-card">
-            <div class="billing-card-header">
+            <div class="billing-card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-receipt"></i> Bill Summary</h5>
+                <span class="badge bg-warning text-dark" style="font-size: 0.85rem;">
+                    Bill Disc: <span id="hdr-bill-disc-pct">{{ bill.discount_percent|floatformat:"0" }}</span>%
+                </span>
             </div>
             <div class="billing-card-body">
                 {% if items %}
@@ -151,8 +154,18 @@
                         <span>Subtotal</span>
                         <strong id="bill-subtotal-val">Rs. {{ bill.subtotal|floatformat:"0" }}</strong>
                     </div>
-                    <div id="bill-disc-row" style="{% if bill.discount_amount <= 0 and bill.discount_percent <= 0 %}display:none;{% endif %}">
-                        <span>Bill Discount (<span id="bill-disc-pct">{{ bill.discount_percent|floatformat:"0" }}</span>%)</span>
+                    <div id="bill-disc-row" class="d-flex justify-content-between align-items-center py-1">
+                        <span class="d-flex align-items-center gap-1">
+                            <span>Bill Discount:</span>
+                            <input type="number" id="inline_bill_discount" min="0" max="100" step="0.01"
+                                   value="{{ bill.discount_percent|floatformat:"0" }}"
+                                   data-orig="{{ bill.discount_percent|floatformat:"0" }}"
+                                   data-url="{% url 'update_bill_discount' bill.id %}"
+                                   data-csrf="{{ csrf_token }}"
+                                   class="form-control form-control-sm text-center d-inline-block"
+                                   style="width: 60px; height: 28px; padding: 2px 4px; font-weight: bold;"
+                                   title="Edit Bill Discount % directly"> %
+                        </span>
                         <strong class="text-danger" id="bill-disc-amt">-Rs. {{ bill.discount_amount|floatformat:"0" }}</strong>
                     </div>
                     <div class="grand-total">
@@ -502,6 +515,83 @@
                 inp.addEventListener('blur', saveRow);
             });
         });
+
+        // ===== INLINE BILL DISCOUNT UPDATE =====
+        var billDiscInput = document.getElementById('inline_bill_discount');
+        if (billDiscInput) {
+            var isSavingBillDisc = false;
+            function saveBillDisc() {
+                if (isSavingBillDisc) return;
+                var newDisc = parseFloat(billDiscInput.value);
+                var origDisc = parseFloat(billDiscInput.getAttribute('data-orig'));
+                if (isNaN(newDisc) || newDisc < 0) {
+                    billDiscInput.value = origDisc;
+                    return;
+                }
+                if (newDisc === origDisc) return;
+
+                isSavingBillDisc = true;
+                billDiscInput.disabled = true;
+                billDiscInput.style.opacity = '0.5';
+
+                var url = billDiscInput.getAttribute('data-url');
+                var csrf = billDiscInput.getAttribute('data-csrf');
+                var body = 'csrfmiddlewaretoken=' + encodeURIComponent(csrf)
+                         + '&discount_percent=' + newDisc;
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: body
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    billDiscInput.disabled = false;
+                    billDiscInput.style.opacity = '1';
+                    isSavingBillDisc = false;
+
+                    if (data.ok) {
+                        billDiscInput.setAttribute('data-orig', newDisc);
+                        var pctStr = Math.round(parseFloat(data.discount_percent || 0));
+                        var hdrPct = document.getElementById('hdr-bill-disc-pct');
+                        var titlePct = document.getElementById('title-bill-disc-pct');
+                        if (hdrPct) hdrPct.textContent = pctStr;
+                        if (titlePct) titlePct.textContent = pctStr + '%';
+
+                        var billDiscAmt = document.getElementById('bill-disc-amt');
+                        if (billDiscAmt) billDiscAmt.textContent = '-Rs. ' + Math.round(parseFloat(data.discount_amount || 0));
+
+                        var totEl = document.getElementById('bill-total-val');
+                        if (totEl) totEl.textContent = 'Rs. ' + Math.round(parseFloat(data.bill_total));
+                    } else {
+                        billDiscInput.value = origDisc;
+                        alert(data.error || 'Could not update bill discount.');
+                    }
+                })
+                .catch(function() {
+                    billDiscInput.disabled = false;
+                    billDiscInput.style.opacity = '1';
+                    isSavingBillDisc = false;
+                    billDiscInput.value = origDisc;
+                    alert('Network error updating bill discount.');
+                });
+            }
+
+            billDiscInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    billDiscInput.blur();
+                }
+                if (e.key === 'Escape') {
+                    billDiscInput.value = billDiscInput.getAttribute('data-orig');
+                    billDiscInput.blur();
+                }
+            });
+            billDiscInput.addEventListener('blur', saveBillDisc);
+        }
     });</script>
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
