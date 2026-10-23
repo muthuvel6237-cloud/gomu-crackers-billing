@@ -85,18 +85,6 @@
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ form.quantity.id_for_label }}" class="form-label">
-                                <i class="bi bi-boxes"></i> Current Stock *
-                            </label>
-                            {{ form.quantity }}
-                            {% if form.quantity.errors %}
-                                <div class="text-danger mt-2">{{ form.quantity.errors }}</div>
-                            {% endif %}
-                        </div>
-                    </div>
-
                     <div class="mb-3">
                         <label for="{{ form.description.id_for_label }}" class="form-label">
                             <i class="bi bi-file-text"></i> Description
@@ -144,8 +132,7 @@
                 <h6><i class="bi bi-currency-rupee"></i> Pricing</h6>
                 <p class="small">Price should be per unit. For example, if price per piece is ₹10, enter 10.</p>
 
-                <h6><i class="bi bi-boxes"></i> Stock Tracking</h6>
-                <p class="small">Stock quantity is tracked in the selected unit. Update via Stock Management.</p>
+                
 
                 {% if form.instance.id %}
                 <div class="alert alert-info mt-3">
@@ -153,7 +140,7 @@
                         <strong>Current Status:</strong><br>
                         Unit: <strong>{{ form.instance.get_unit_display }}</strong><br>
                         Price: <strong>₹{{ form.instance.price }}</strong><br>
-                        Stock: <strong>{{ form.instance.quantity }}</strong>
+                        
                     </small>
                 </div>
                 {% endif %}

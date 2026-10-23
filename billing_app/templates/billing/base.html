@@ -304,9 +304,6 @@
                         <a href="{% url 'customer_list' %}" class="nav-link"><i class="bi bi-people"></i> Customers</a>
                     </li>
                     <li class="nav-item d-md-none">
-                        <a href="{% url 'stock_list' %}" class="nav-link"><i class="bi bi-graph-up"></i> Stock</a>
-                    </li>
-                    <li class="nav-item d-md-none">
                         <a href="{% url 'bill_list' %}" class="nav-link"><i class="bi bi-file-earmark-text"></i> Bills</a>
                     </li>
                     <li class="nav-item d-md-none">
@@ -347,9 +344,6 @@
                     </a>
                     <a href="{% url 'customer_list' %}" class="nav-link {% if 'customer' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="bi bi-people"></i> Customers
-                    </a>
-                    <a href="{% url 'stock_list' %}" class="nav-link {% if 'stock' in request.resolver_match.url_name %}active{% endif %}">
-                        <i class="bi bi-graph-up"></i> Stock
                     </a>
                     
                     <hr class="my-2">

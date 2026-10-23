@@ -28,40 +28,26 @@
     </div>
 
     <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <a href="{% url 'product_list' %}" class="stat-card action-stat-card">
+        <div class="col-md-6">
+            <div class="stat-card">
                 <div class="stat-icon"><i class="bi bi-box-seam"></i></div>
                 <div class="stat-value">{{ product_count }}</div>
-                <div class="stat-label">Products Shown</div>
-            </a>
+                <div class="stat-label">Total Products</div>
+            </div>
         </div>
-        <div class="col-md-3">
-            <a href="{% url 'product_list' %}?stock=in_stock" class="stat-card action-stat-card">
-                <div class="stat-icon"><i class="bi bi-stack"></i></div>
-                <div class="stat-value">{{ total_quantity }}</div>
-                <div class="stat-label">Total Stock</div>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a href="{% url 'product_export_excel' %}" class="stat-card action-stat-card">
-                <div class="stat-icon"><i class="bi bi-file-earmark-spreadsheet"></i></div>
-                <div class="stat-value">Rs. {{ stock_value|floatformat:0 }}</div>
-                <div class="stat-label">Stock Value</div>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a href="{% url 'product_list' %}?stock=attention" class="stat-card action-stat-card">
-                <div class="stat-icon"><i class="bi bi-exclamation-circle"></i></div>
-                <div class="stat-value">{{ low_stock_count }}/{{ out_of_stock_count }}</div>
-                <div class="stat-label">Low / Out Stock</div>
-            </a>
+        <div class="col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="bi bi-collection"></i></div>
+                <div class="stat-value">{{ category_choices|length }}</div>
+                <div class="stat-label">Categories</div>
+            </div>
         </div>
     </div>
 
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end">
-                <div class="col-md-4">
+                <div class="col-md-7">
                     <label for="productSearch" class="form-label">Search</label>
                     <input type="text" id="productSearch" name="q" class="form-control"
                            value="{{ search_query }}" placeholder="Product name or description">
@@ -73,16 +59,6 @@
                         {% for value, label in category_choices %}
                             <option value="{{ value }}" {% if category_filter == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="stockFilter" class="form-label">Stock Status</label>
-                    <select id="stockFilter" name="stock" class="form-control">
-                        <option value="">All Stock</option>
-                        <option value="in_stock" {% if stock_filter == 'in_stock' %}selected{% endif %}>In Stock</option>
-                        <option value="low_stock" {% if stock_filter == 'low_stock' %}selected{% endif %}>Low Stock</option>
-                        <option value="out_of_stock" {% if stock_filter == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
-                        <option value="attention" {% if stock_filter == 'attention' %}selected{% endif %}>Low or Out Stock</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex gap-2">
@@ -113,8 +89,6 @@
                             <th>Category</th>
                             <th>Unit</th>
                             <th>Price</th>
-                            <th>Stock</th>
-                            <th>Status</th>
                             <th>Description</th>
                             <th width="180">Actions</th>
                         </tr>
@@ -127,22 +101,6 @@
                             <td>{{ product.get_category_display }}</td>
                             <td>{{ product.get_unit_display }}</td>
                             <td><strong>Rs. {{ product.price|floatformat:2 }}</strong></td>
-                            <td>
-                                {% if product.quantity > 10 %}
-                                    <span class="badge bg-success">{{ product.quantity }}</span>
-                                {% elif product.quantity > 0 %}
-                                    <span class="badge bg-warning text-dark">{{ product.quantity }}</span>
-                                {% else %}
-                                    <span class="badge bg-danger">Out of Stock</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if product.quantity > 0 %}
-                                    <span class="badge bg-success">In Stock</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Needs Stock</span>
-                                {% endif %}
-                            </td>
                             <td>{{ product.description|default:"No description"|truncatewords:10 }}</td>
                             <td>
                                 <a href="{% url 'product_update' product.id %}" class="btn btn-sm btn-warning">

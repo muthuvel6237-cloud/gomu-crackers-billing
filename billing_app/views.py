@@ -241,7 +241,6 @@ def product_list(request):
     products = Product.objects.all()
     search_query = request.GET.get('q', '').strip()
     category_filter = request.GET.get('category', '').strip()
-    stock_filter = request.GET.get('stock', '').strip()
 
     if search_query:
         products = products.filter(
@@ -252,32 +251,14 @@ def product_list(request):
     if category_filter:
         products = products.filter(category=category_filter)
 
-    if stock_filter == 'in_stock':
-        products = products.filter(quantity__gt=10)
-    elif stock_filter == 'low_stock':
-        products = products.filter(quantity__gt=0, quantity__lte=10)
-    elif stock_filter == 'out_of_stock':
-        products = products.filter(quantity__lte=0)
-    elif stock_filter == 'attention':
-        products = products.filter(quantity__lte=10)
-
     product_count = products.count()
-    total_quantity = products.aggregate(total=models.Sum('quantity'))['total'] or 0
-    stock_value = sum(product.price * product.quantity for product in products)
-    low_stock_count = products.filter(quantity__gt=0, quantity__lte=10).count()
-    out_of_stock_count = products.filter(quantity__lte=0).count()
 
     context = {
         'products': products,
         'category_choices': Product.CATEGORY_CHOICES,
         'search_query': search_query,
         'category_filter': category_filter,
-        'stock_filter': stock_filter,
         'product_count': product_count,
-        'total_quantity': total_quantity,
-        'stock_value': stock_value,
-        'low_stock_count': low_stock_count,
-        'out_of_stock_count': out_of_stock_count,
     }
     return render(request, 'billing/product_list.html', context)
 
@@ -451,7 +432,7 @@ def product_export_pdf(request):
         Spacer(1, 0.2 * inch),
     ]
 
-    data = [['S.No', 'Product', 'Category', 'Unit', 'Price', 'Stock']]
+    data = [['S.No', 'Product', 'Category', 'Unit', 'Price']]
     for index, product in enumerate(Product.objects.all().order_by('name'), start=1):
         data.append([
             str(index),
@@ -459,10 +440,9 @@ def product_export_pdf(request):
             product.get_category_display(),
             product.get_unit_display(),
             f'{product.price:.2f}',
-            str(product.quantity),
         ])
 
-    table = Table(data, colWidths=[0.45 * inch, 2.35 * inch, 1.15 * inch, 0.85 * inch, 0.9 * inch, 0.75 * inch])
+    table = Table(data, colWidths=[0.5 * inch, 3.2 * inch, 1.4 * inch, 1.0 * inch, 1.1 * inch])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.black),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -891,7 +871,7 @@ def generate_bill_pdf(request, pk):
             story.append(cont_details)
             story.append(Spacer(1, 0.12 * inch))
 
-        chunk_data = [['S.No', 'Code', 'Product', 'Unit', 'Qty', 'Rate', 'Amount']]
+        chunk_data = [['S.No', 'Code', 'Product', 'Unit', 'Qty', 'Rate', 'Bill Disc', 'Disc %', 'Amount']]
         start_num = (chunk_idx * ITEMS_PER_PAGE) + 1
 
         for i, item in enumerate(chunk, start=start_num):
@@ -907,17 +887,21 @@ def generate_bill_pdf(request, pk):
                 item.unit or "",
                 str(item.quantity),
                 f"{item.unit_price:.2f}",
+                f"{bill.discount_percent:.0f}%",
+                f"{discount:.0f}%" if discount > 0 else "-",
                 f"{final_amount:.2f}"
             ])
 
         chunk_table = Table(chunk_data, colWidths=[
+            0.4 * inch,
+            0.6 * inch,
+            2.3 * inch,
             0.5 * inch,
-            0.8 * inch,
-            2.5 * inch,
+            0.5 * inch,
             0.7 * inch,
-            0.8 * inch,
-            0.8 * inch,
-            1.0 * inch
+            0.7 * inch,
+            0.6 * inch,
+            0.9 * inch
         ])
 
         chunk_table.setStyle(TableStyle([

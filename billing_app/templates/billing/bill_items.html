@@ -37,13 +37,20 @@
                     </div>
 
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Rate</label>
                             <input type="text" id="unit_price_display" class="form-control counter-readonly" readonly>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Item Total</label>
-                            <input type="text" id="item_total_display" class="form-control counter-total" readonly>
+                        <div class="col-md-4">
+                            <label class="form-label">Bill Discount (%)</label>
+                            <input type="text" id="bill_discount_display" class="form-control text-center fw-bold bg-warning bg-opacity-25" value="{{ bill.discount_percent|floatformat:"0" }}%" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="discount_input" class="form-label">Product Disc (%)</label>
+                            {{ form.item_discount }}
+                            {% if form.item_discount.errors %}
+                                <div class="text-danger mt-2">{{ form.item_discount.errors }}</div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -56,11 +63,8 @@
                             {% endif %}
                         </div>
                         <div class="col-md-6">
-                            <label for="discount_input" class="form-label">Discount (%)</label>
-                            {{ form.item_discount }}
-                            {% if form.item_discount.errors %}
-                                <div class="text-danger mt-2">{{ form.item_discount.errors }}</div>
-                            {% endif %}
+                            <label class="form-label">Item Total</label>
+                            <input type="text" id="item_total_display" class="form-control counter-total" readonly>
                         </div>
                     </div>
 
@@ -93,9 +97,10 @@
                             <tr>
                                 <th>Code</th>
                                 <th>Product</th>
-                                <th class="text-center" style="width: 80px;">Qty</th>
+                                <th class="text-center" style="width: 70px;">Qty</th>
                                 <th class="text-end">Rate</th>
-                                <th class="text-center" style="width: 80px;">Disc %</th>
+                                <th class="text-center" style="width: 75px;">Bill Disc</th>
+                                <th class="text-center" style="width: 75px;">Disc %</th>
                                 <th class="text-end">Total</th>
                                 <th class="text-center">Remove</th>
                             </tr>
@@ -115,7 +120,12 @@
                                            style="width:65px;display:inline-block;">
                                 </td>
 
-                                <td class="text-end">Rs. {{ item.unit_price }}</td>
+                                <td class="text-end">Rs. {{ item.unit_price|floatformat:"0" }}</td>
+
+                                <!-- Bill Disc % for single product -->
+                                <td class="text-center">
+                                    <span class="badge bg-warning text-dark row-bill-disc-pct">{{ bill.discount_percent|floatformat:"0" }}%</span>
+                                </td>
 
                                 <!-- Product Disc % input -->
                                 <td class="text-center">
@@ -123,7 +133,7 @@
                                            value="{{ item.item_discount|floatformat:"0" }}"
                                            data-orig="{{ item.item_discount|floatformat:"0" }}"
                                            class="form-control form-control-sm text-center disc-input"
-                                           style="width:65px;display:inline-block;">
+                                           style="width:60px;display:inline-block;">
                                 </td>
 
                                 <td class="text-end fw-bold item-total-cell">Rs. {{ item.item_total|floatformat:"0" }}</td>
@@ -563,6 +573,12 @@
 
                         var billDiscAmt = document.getElementById('bill-disc-amt');
                         if (billDiscAmt) billDiscAmt.textContent = '-Rs. ' + Math.round(parseFloat(data.discount_amount || 0));
+
+                        document.querySelectorAll('.row-bill-disc-pct').forEach(function(badge) {
+                            badge.textContent = pctStr + '%';
+                        });
+                        var bDisp = document.getElementById('bill_discount_display');
+                        if (bDisp) bDisp.value = pctStr + '%';
 
                         var totEl = document.getElementById('bill-total-val');
                         if (totEl) totEl.textContent = 'Rs. ' + Math.round(parseFloat(data.bill_total));

@@ -15,14 +15,13 @@ class CategoryForm(forms.ModelForm):
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ['code', 'name', 'category', 'unit', 'price', 'quantity', 'description']
+        fields = ['code', 'name', 'category', 'unit', 'price', 'description']
         widgets = {
             'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Product code (optional)'}),
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Product name'}),
             'category': forms.Select(attrs={'class': 'form-control'}),
             'unit': forms.Select(attrs={'class': 'form-control'}),
             'price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Price per unit'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Current stock'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Product description'}),
         }
         labels = {

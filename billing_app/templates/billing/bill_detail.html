@@ -80,6 +80,7 @@
                                 <th>Product</th>
                                 <th class="text-center">Qty</th>
                                 <th class="text-end">Unit Price</th>
+                                <th class="text-center">Bill Discount</th>
                                 <th class="text-end">Item Discount</th>
                                 <th class="text-end">Total</th>
                             </tr>
@@ -90,6 +91,7 @@
                                 <td>{{ item.product.name }}</td>
                                 <td class="text-center">{{ item.quantity }}</td>
                                 <td class="text-end">₹{{ item.unit_price|floatformat:2 }}</td>
+                                <td class="text-center"><span class="badge bg-warning text-dark">{{ bill.discount_percent|floatformat:"0" }}%</span></td>
                                 <td class="text-end">{{ item.item_discount }}%</td>
                                 <td class="text-end"><strong>₹{{ item.item_total|floatformat:2 }}</strong></td>
                             </tr>
