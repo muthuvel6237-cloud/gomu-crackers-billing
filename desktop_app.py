@@ -24,12 +24,12 @@ def prepare_runtime_assets() -> None:
     from django.conf import settings
     from django.core.management import call_command
 
-    static_root = Path(settings.STATIC_ROOT)
-    if not static_root.exists() or not any(static_root.iterdir()):
-        try:
-            call_command("collectstatic", interactive=False, verbosity=0)
-        except Exception:
-            pass
+    # Always run collectstatic when frozen so new vendor/static assets are
+    # picked up even when the user already has an older staticfiles directory.
+    try:
+        call_command("collectstatic", interactive=False, verbosity=0, clear=True)
+    except Exception:
+        pass
     try:
         call_command("migrate", interactive=False, verbosity=0)
     except Exception:

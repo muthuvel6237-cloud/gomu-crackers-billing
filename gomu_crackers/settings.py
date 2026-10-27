@@ -175,8 +175,14 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = ensure_directory('staticfiles')
 
-# WhiteNoise for serving static files in production
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# WhiteNoise for serving static files
+# Use CompressedStaticFilesStorage (no manifest) for frozen/offline desktop app
+# to avoid manifest mismatch errors across app updates.
+# Use CompressedManifestStaticFilesStorage for cloud (cache busting via hash).
+if is_frozen():
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+else:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = APP_DATA_DIR / 'media'
